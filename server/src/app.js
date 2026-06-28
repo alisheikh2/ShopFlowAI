@@ -1,25 +1,20 @@
 const express = require("express");
 const cors = require("cors");
 
+const routes = require("./routes");
 const ApiError = require("./utils/apiError");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check Route
-app.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "ShopFlow API is running...",
-  });
-});
+// API Routes
+app.use("/api/v1", routes);
 
-// 404 Route Handler
+// 404 Handler
 app.use((req, res, next) => {
   next(new ApiError(404, "Route not found"));
 });
