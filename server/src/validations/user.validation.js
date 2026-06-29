@@ -23,6 +23,20 @@ const registerValidation = [
     ),
 ];
 
+const loginValidation = [
+  body("email")
+    .trim()
+    .isEmail()
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required"),
+];
+
+
 module.exports = {
   registerValidation,
+  loginValidation,
 };

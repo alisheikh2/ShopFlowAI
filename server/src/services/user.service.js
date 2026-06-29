@@ -15,12 +15,46 @@ const registerUser = async ({ name, email, password }) => {
   });
 
   const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken -__v"
+    "-password -refreshToken -emailVerificationToken -__v"
   );
 
   return createdUser;
 };
 
+const loginUser = async ({ email, password }) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  const isPasswordCorrect = await user.comparePassword(password);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -__v"
+  );
+
+  return loggedInUser;
+};
+
+const logoutUser = async (userId) => {
+  await User.findByIdAndUpdate(
+    userId,
+    {
+      refreshToken: "",
+    },
+    {
+      new: true,
+    }
+  );
+};
+
 module.exports = {
   registerUser,
+  loginUser,
+  logoutUser,
 };
