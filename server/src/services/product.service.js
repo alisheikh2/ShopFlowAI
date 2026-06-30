@@ -41,8 +41,54 @@ const getProductBySlug = async (slug) => {
         return product;
      };
 
+     
+const updateProduct = async (slug, updateData) => {
+  const product = await Product.findOne({
+    slug,
+  });
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  // Slug update if name changes
+  if (updateData.name) {
+    updateData.slug = updateData.name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-");
+  }
+
+  const updatedProduct = await Product.findByIdAndUpdate(
+    product._id,
+    updateData,
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).populate("createdBy", "name");
+
+  return updatedProduct;
+};
+
+const deleteProduct = async (slug) => {
+  const product = await Product.findOne({
+    slug,
+  });
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  await Product.findByIdAndDelete(product._id);
+
+  return;
+};
+
 module.exports = {
   createProduct,
   getAllProducts,
   getProductBySlug,
+  updateProduct,
+  deleteProduct,
 };
