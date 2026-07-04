@@ -7,17 +7,40 @@ const {
   registerUser,
   loginUser,
   logoutUser,
+  verifyEmail,
 } = require("../services/user.service");
 const generateAccessAndRefreshTokens = require("../utils/generateTokens");
 const cookieOptions = require("../constants/cookieOptions");
+const sendEmail = require("../utils/sendEmail");
+const {
+  verificationEmailTemplate,
+} = require("../utils/emailTemplates");
 
 const register = asyncHandler(async (req, res) => {
-  const user = await registerUser(req.body);
+  const {
+    user,
+    verificationToken,
+  } = await registerUser(req.body);
 
-  res.status(201).json(
-    new ApiResponse(201, "User registered successfully", {
-      user,
-    })
+  const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: "Verify your ShopFlow AI account",
+    html: verificationEmailTemplate(
+      user.name,
+      verificationUrl
+    ),
+  });
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      "Registration successful. Please check your email to verify your account.",
+      {
+        user,
+      }
+    )
   );
 });
 
@@ -111,12 +134,21 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-     console.log("🔥 Controller HIT");
-      console.log(req.user);
   return res.status(200).json(
     new ApiResponse(200, "Current user fetched successfully", {
       user: req.user,
     })
+  );
+});
+
+const verifyEmailController = asyncHandler(async (req, res) => {
+  await verifyEmail(req.params.token);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Email verified successfully"
+    )
   );
 });
 
@@ -126,4 +158,5 @@ module.exports = {
   refreshAccessToken,
   logout,
   getCurrentUser,
+  verifyEmailController,
 };

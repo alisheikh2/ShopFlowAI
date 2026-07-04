@@ -1,33 +1,36 @@
 const express = require("express");
 
-const { create,
-        getAll,
-        getOne,
-        update,
-        remove,
- } = require("../controllers/product.controller");
-const { 
-  createProductValidation,
-  updateProductValidation,
- } = require("../validations/product.validation");
+const {
+  create,
+  getAll,
+  getOne,
+  update,
+  remove,
+} = require("../controllers/category.controller");
+
+const {
+  createCategoryValidation,
+} = require("../validations/category.validation");
+
 const validateRequest = require("../middleware/validateRequest");
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
-const upload = require("../middleware/upload.middleware");
 
 const router = express.Router();
 
+// Public Routes
 
 router.get("/", getAll);
 
 router.get("/:slug", getOne);
 
+// Admin Routes
+
 router.post(
   "/",
   verifyJWT,
   verifyRole("admin"),
-  upload.array("images", 5),
-  createProductValidation,
+  createCategoryValidation,
   validateRequest,
   create
 );
@@ -36,8 +39,7 @@ router.put(
   "/:slug",
   verifyJWT,
   verifyRole("admin"),
-  upload.array("images", 5),
-  updateProductValidation,
+  createCategoryValidation,
   validateRequest,
   update
 );

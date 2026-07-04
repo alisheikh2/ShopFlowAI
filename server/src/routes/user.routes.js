@@ -5,6 +5,7 @@ const {
   refreshAccessToken,
   logout,
   getCurrentUser,
+  verifyEmailController,
 } = require("../controllers/user.controller");
 const {
   registerValidation,
@@ -42,16 +43,21 @@ router.get(
   getCurrentUser
 );
 
-// router.get(
-//   "/admin-test",
-//   verifyJWT,
-//   verifyRole("admin"),
-//   (req, res) => {
-//     res.status(200).json({
-//       success: true,
-//       message: "Welcome Admin!",
-//     });
-//   }
-// );
+router.get(
+  "/admin-test",
+  verifyJWT,
+  verifyRole("admin"),
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: "Welcome Admin!",
+    });
+  }
+);
+
+router.get(
+  "/verify-email/:token",
+  verifyEmailController
+);
 
 module.exports = router;

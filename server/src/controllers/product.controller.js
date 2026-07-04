@@ -9,8 +9,13 @@ const {
 } = require("../services/product.service");
 
 const create = asyncHandler(async (req, res) => {
-  const product = await createProduct(req.body, req.user._id);
+  if (req.files?.length) {
+  req.body.images = req.files.map((file) => {
+    return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  });
+}
 
+const product = await createProduct(req.body, req.user._id);
   return res.status(201).json(
     new ApiResponse(201, "Product created successfully", {
       product,
@@ -19,12 +24,16 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const getAll = asyncHandler(async (req, res) => {
-  const products = await getAllProducts();
-  return res.status(200).json(
-    new ApiResponse(200, "Products fetched successfully", {
-      products,
-    }),
-  );
+  
+const result = await getAllProducts(req.query);
+
+return res.status(200).json(
+  new ApiResponse(
+    200,
+    "Products fetched successfully",
+    result
+  )
+);
 });
 
 const getOne = asyncHandler(async (req, res) => {
@@ -37,6 +46,12 @@ const getOne = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
+
+  if (req.files?.length) {
+  req.body.images = req.files.map((file) => {
+    return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  });
+}
   const product = await updateProduct(
     req.params.slug,
     req.body

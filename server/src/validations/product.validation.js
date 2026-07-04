@@ -39,9 +39,60 @@ const createProductValidation = [
     .withMessage("Brand name cannot exceed 50 characters"),
 
   body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .isMongoId()
+    .withMessage("Invalid category id"),
+
+  body("isFeatured")
+    .optional()
+    .isBoolean()
+    .withMessage("isFeatured must be true or false"),
+
+  body("isPublished")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublished must be true or false"),
+];
+
+const updateProductValidation = [
+  body("name")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 100 })
+    .withMessage("Product name must be between 3 and 100 characters"),
+
+  body("description")
+    .optional()
+    .trim()
+    .isLength({ min: 10 })
+    .withMessage("Description must be at least 10 characters long"),
+
+  body("price")
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage("Price must be greater than 0"),
+
+  body("discountPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Discount price cannot be negative"),
+
+  body("stock")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Stock cannot be negative"),
+
+  body("brand")
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage("Brand name cannot exceed 50 characters"),
+
+  body("category")
     .optional()
     .isMongoId()
-    .withMessage("Invalid category ID"),
+    .withMessage("Invalid category id"),
 
   body("isFeatured")
     .optional()
@@ -56,4 +107,5 @@ const createProductValidation = [
 
 module.exports = {
   createProductValidation,
+  updateProductValidation,
 };

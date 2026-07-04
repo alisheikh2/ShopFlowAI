@@ -1,0 +1,94 @@
+const asyncHandler = require("../utils/asyncHandler");
+const ApiResponse = require("../utils/apiResponse");
+
+const orderService = require("../services/order.service");
+
+const create = asyncHandler(async (req, res) => {
+  const order = await orderService.createOrder(
+    req.user._id,
+    req.body
+  );
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      "Order placed successfully",
+      {
+        order,
+      }
+    )
+  );
+});
+
+const getMyOrders = asyncHandler(async (req, res) => {
+  const orders = await orderService.getMyOrders(
+    req.user._id
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Orders fetched successfully",
+      {
+        orders,
+      }
+    )
+  );
+});
+
+const getOne = asyncHandler(async (req, res) => {
+  const order = await orderService.getSingleOrder(
+    req.params.id,
+    req.user._id,
+    req.user.role
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Order fetched successfully",
+      {
+        order,
+      }
+    )
+  );
+});
+
+const getAll = asyncHandler(async (req, res) => {
+  const orders = await orderService.getAllOrders();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "All orders fetched successfully",
+      {
+        orders,
+      }
+    )
+  );
+});
+
+const updateStatus = asyncHandler(async (req, res) => {
+  const order = await orderService.updateOrderStatus(
+    req.params.id,
+    req.body.orderStatus
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Order status updated successfully",
+      {
+        order,
+      }
+    )
+  );
+});
+
+module.exports = {
+  create,
+  getMyOrders,
+  getOne,
+  getAll,
+  updateStatus,
+};
