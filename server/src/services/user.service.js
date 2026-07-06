@@ -92,9 +92,106 @@ const verifyEmail = async (token) => {
   return user;
 };
 
+const forgotPassword = async (email) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(
+      403,
+      "Please verify your email before resetting your password",
+    );
+  }
+
+  const { rawToken, hashedToken, expiry } = generateSecureToken();
+
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpiry = expiry;
+
+  await user.save({
+    validateBeforeSave: false,
+  });
+
+  return {
+    user,
+    resetToken: rawToken,
+  };
+};
+
+const resetPassword = async (token, password) => {
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpiry: {
+      $gt: Date.now(),
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired reset link");
+  }
+
+  user.password = password;
+
+  user.passwordResetToken = "";
+  user.passwordResetExpiry = undefined;
+
+  await user.save();
+
+  return user;
+};
+
+const googleLogin = async (decodedToken) => {
+  const { uid, email, name, picture } = decodedToken;
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    user = await User.create({
+      name,
+      email,
+      password: crypto.randomBytes(32).toString("hex"),
+      googleId: uid,
+      authProvider: "google",
+      isEmailVerified: true,
+      avatar: {
+        public_id: "",
+        url: picture || "",
+      },
+    });
+  } else {
+    if (!user.googleId) {
+      user.googleId = uid;
+    }
+
+    user.isEmailVerified = true;
+
+    if (picture && !user.avatar.url) {
+      user.avatar.url = picture;
+    }
+
+    await user.save({
+      validateBeforeSave: false,
+    });
+  }
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -passwordResetToken -__v",
+  );
+
+  return loggedInUser;
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   verifyEmail,
+  forgotPassword,
+  resetPassword,
+  googleLogin,
 };

@@ -12,8 +12,8 @@ const createProductValidation = [
     .trim()
     .notEmpty()
     .withMessage("Description is required")
-    .isLength({ min: 10 })
-    .withMessage("Description must be at least 10 characters long"),
+    .isLength({ min: 10, max: 2000 })
+    .withMessage("Description must be between 10 and 2000 characters"),
 
   body("price")
     .notEmpty()
@@ -65,8 +65,8 @@ const updateProductValidation = [
   body("description")
     .optional()
     .trim()
-    .isLength({ min: 10 })
-    .withMessage("Description must be at least 10 characters long"),
+    .isLength({ min: 10, max: 2000 })
+    .withMessage("Description must be between 10 and 2000 characters"),
 
   body("price")
     .optional()

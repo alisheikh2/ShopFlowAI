@@ -5,11 +5,16 @@ const {
   refreshAccessToken,
   logout,
   getCurrentUser,
+  googleLoginController,
   verifyEmailController,
+  forgotPasswordController,
+  resetPasswordController,
 } = require("../controllers/user.controller");
 const {
   registerValidation,
   loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 } = require("../validations/user.validation");
 const validateRequest = require("../middleware/validateRequest");
 const router = express.Router();
@@ -55,9 +60,28 @@ router.get(
   }
 );
 
+router.post(
+  "/google-login",
+  googleLoginController
+);
+
 router.get(
   "/verify-email/:token",
   verifyEmailController
+);
+
+router.post(
+  "/forgot-password",
+  forgotPasswordValidation,
+  validateRequest,
+  forgotPasswordController
+);
+
+router.post(
+  "/reset-password/:token",
+  resetPasswordValidation,
+  validateRequest,
+  resetPasswordController
 );
 
 module.exports = router;

@@ -7,3 +7,5 @@ dist
 .vscode
 
 .DS_Store
+
+server/src/config/firebase/*.json

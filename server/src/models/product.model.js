@@ -6,6 +6,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 100,
     },
 
     slug: {
@@ -20,6 +21,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 2000,
     },
 
     price: {
@@ -45,6 +47,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+      maxlength: 50,
     },
 
     category: {
