@@ -1,9 +1,13 @@
 const { initializeApp, cert } = require("firebase-admin/app");
 
-const serviceAccount = require("../config/firebase/shopflowai-firebase-adminsdk.json");
+let adminApp = null;
 
-const admin = initializeApp({
-  credential: cert(serviceAccount),
-});
+const getFirebaseAdmin = () => {
+  if (!adminApp) {
+    const serviceAccount = require("../config/firebase/shopflowai-firebase-adminsdk.json");
+    adminApp = initializeApp({ credential: cert(serviceAccount) });
+  }
+  return adminApp;
+};
 
-module.exports = admin;
+module.exports = getFirebaseAdmin;

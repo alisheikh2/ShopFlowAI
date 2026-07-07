@@ -35,6 +35,18 @@ const pickAllowedFields = (source) => {
 
 const createProduct = async (productData, userId) => {
   productData = pickAllowedFields(productData);
+
+  // Business rule: discount price must be strictly less than the regular price
+  if (
+    productData.discountPrice &&
+    productData.discountPrice >= productData.price
+  ) {
+    throw new ApiError(
+      400,
+      "Discount price must be less than the regular price",
+    );
+  }
+
   // Check category exists
   const category = await Category.findById(productData.category);
 
@@ -205,6 +217,17 @@ const updateProduct = async (slug, updateData) => {
     if (!category) {
       throw new ApiError(404, "Category not found");
     }
+  }
+
+  // Business rule: discount price must be strictly less than the regular price.
+  const effectivePrice = updateData.price ?? product.price;
+  const effectiveDiscount = updateData.discountPrice ?? product.discountPrice;
+
+  if (effectiveDiscount && effectiveDiscount >= effectivePrice) {
+    throw new ApiError(
+      400,
+      "Discount price must be less than the regular price",
+    );
   }
 
   // Update slug + check duplicate

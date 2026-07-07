@@ -20,6 +20,8 @@ const sendEmail = require("../utils/sendEmail");
 const { verificationEmailTemplate,
         passwordResetEmailTemplate,
  } = require("../utils/emailTemplates");
+ const getFirebaseAdmin = require("../utils/firebaseAdmin");
+
 
 const register = asyncHandler(async (req, res) => {
   const { user, verificationToken } = await registerUser(req.body);
@@ -141,9 +143,18 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+  const safeUser = {
+    _id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    avatar: req.user.avatar,
+    isEmailVerified: req.user.isEmailVerified,
+  };
+
   return res.status(200).json(
     new ApiResponse(200, "Current user fetched successfully", {
-      user: req.user,
+      user: safeUser,
     }),
   );
 });
@@ -154,6 +165,8 @@ const googleLoginController = asyncHandler(async (req, res) => {
   if (!idToken) {
     throw new ApiError(400, "Google ID token is required");
   }
+
+  getFirebaseAdmin();
 
   let decodedToken;
 

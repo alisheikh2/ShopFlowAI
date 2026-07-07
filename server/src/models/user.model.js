@@ -3,6 +3,12 @@ const ROLES = require("../constants/roles");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+  throw new Error(
+    "ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be set in environment variables",
+  );
+}
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -22,6 +28,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
 
     avatar: {
@@ -107,7 +114,7 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m",
     },
   );
 };
@@ -119,7 +126,7 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
     },
   );
 };

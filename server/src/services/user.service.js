@@ -36,7 +36,7 @@ const registerUser = async ({ name, email, password }) => {
 };
 
 const loginUser = async ({ email, password }) => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
     throw new ApiError(401, "Invalid email or password");
@@ -53,7 +53,7 @@ const loginUser = async ({ email, password }) => {
   }
 
   const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken -emailVerificationToken -__v",
+    "-refreshToken -emailVerificationToken -__v",
   );
 
   return loggedInUser;
@@ -93,14 +93,16 @@ const verifyEmail = async (token) => {
     validateBeforeSave: false,
   });
 
-  return user;
+  const verifiedUser = await User.findById(user._id).select(
+    "-refreshToken -__v -emailVerificationToken -emailVerificationExpiry -passwordResetToken -passwordResetExpiry",
+  );
+
+  return verifiedUser;
 };
 
 const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
 
-  // Silently do nothing if user doesn't exist or isn't eligible —
-  // caller (controller) always returns the same generic response either way.
   if (!user || !user.isEmailVerified) {
     return null;
   }
@@ -114,8 +116,12 @@ const forgotPassword = async (email) => {
     validateBeforeSave: false,
   });
 
+  const safeUser = await User.findById(user._id).select(
+    "-refreshToken -__v -emailVerificationToken -emailVerificationExpiry -passwordResetToken -passwordResetExpiry",
+  );
+
   return {
-    user,
+    user: safeUser,
     resetToken: rawToken,
   };
 };
@@ -135,14 +141,17 @@ const resetPassword = async (token, password) => {
   }
 
   user.password = password;
-  // Revoke all existing sessions after password reset
   user.refreshToken = [];
   user.passwordResetToken = "";
   user.passwordResetExpiry = undefined;
 
   await user.save();
 
-  return user;
+  const safeUser = await User.findById(user._id).select(
+    "-refreshToken -__v -emailVerificationToken -emailVerificationExpiry -passwordResetToken -passwordResetExpiry",
+  );
+
+  return safeUser;
 };
 
 const googleLogin = async (decodedToken) => {
@@ -189,8 +198,6 @@ const googleLogin = async (decodedToken) => {
 const resendVerification = async (email) => {
   const user = await User.findOne({ email });
 
-  // Silently no-op if user doesn't exist or is already verified —
-  // controller always returns the same generic response either way.
   if (!user || user.isEmailVerified) {
     return null;
   }
@@ -206,8 +213,12 @@ const resendVerification = async (email) => {
     validateBeforeSave: false,
   });
 
+  const safeUser = await User.findById(user._id).select(
+    "-refreshToken -__v -emailVerificationToken -emailVerificationExpiry -passwordResetToken -passwordResetExpiry",
+  );
+
   return {
-    user,
+    user: safeUser,
     verificationToken: rawToken,
   };
 };

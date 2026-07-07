@@ -6,8 +6,6 @@ const morgan = require("morgan");
 const mongoSanitize = require("express-mongo-sanitize");
 const hpp = require("hpp");
 
-require("./utils/firebaseAdmin");
-
 const routes = require("./routes");
 const ApiError = require("./utils/apiError");
 const errorHandler = require("./middleware/errorHandler");

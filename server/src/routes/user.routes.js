@@ -23,72 +23,51 @@ const validateRequest = require("../middleware/validateRequest");
 const router = express.Router();
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
-const { authLimiter, forgotPasswordLimiter } = require("../middleware/rateLimiter");
+const {
+  authLimiter,
+  forgotPasswordLimiter,
+} = require("../middleware/rateLimiter");
 
 router.post(
- "/register",
+  "/register",
   authLimiter,
   registerValidation,
   validateRequest,
-  register
+  register,
 );
 
-router.post(
-  "/login",
-  authLimiter,
-  loginValidation,
-  validateRequest,
-  login
-);
+router.post("/login", authLimiter, loginValidation, validateRequest, login);
 
-router.post(
-  "/refresh-token",
-  refreshAccessToken
-);
+router.post("/refresh-token", authLimiter, refreshAccessToken);
 
-router.post("/logout", logout);
+router.post("/logout", authLimiter, logout);
 
-router.get(
-  "/me",
-  verifyJWT,
-  getCurrentUser
-);
+router.get("/me", verifyJWT, getCurrentUser);
 
-router.get(
-  "/admin-test",
-  verifyJWT,
-  verifyRole(ROLES.ADMIN),
-  (req, res) => {
-    res.status(200).json({
-      success: true,
-      message: "Welcome Admin!",
-    });
-  }
-);
+router.get("/admin-test", verifyJWT, verifyRole(ROLES.ADMIN), (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome Admin!",
+  });
+});
 
-router.post(
-  "/google-login",
-  googleLoginController
-);
+router.post("/google-login", googleLoginController);
 
-router.get(
-  "/verify-email/:token",
-  verifyEmailController
-);
+router.get("/verify-email/:token", verifyEmailController);
 
 router.post(
   "/forgot-password",
   forgotPasswordLimiter,
   forgotPasswordValidation,
   validateRequest,
-  forgotPasswordController
+  forgotPasswordController,
 );
 
 router.post(
   "/reset-password/:token",
   resetPasswordValidation,
   validateRequest,
-  resetPasswordController
+  resetPasswordController,
 );
 
 router.post(
@@ -96,7 +75,7 @@ router.post(
   forgotPasswordLimiter,
   resendVerificationValidation,
   validateRequest,
-  resendVerificationController
+  resendVerificationController,
 );
 
 module.exports = router;
