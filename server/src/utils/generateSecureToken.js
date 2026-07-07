@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 
-const generateSecureToken = () => {
+const DEFAULT_EXPIRY_MS = 1000 * 60 * 60; // 1 hour
+
+const generateSecureToken = (expiryMs = DEFAULT_EXPIRY_MS) => {
   const rawToken = crypto.randomBytes(32).toString("hex");
 
   const hashedToken = crypto
@@ -8,7 +10,7 @@ const generateSecureToken = () => {
     .update(rawToken)
     .digest("hex");
 
-  const expiry = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+  const expiry = new Date(Date.now() + expiryMs);
 
   return {
     rawToken,

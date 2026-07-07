@@ -1,4 +1,5 @@
 const asyncHandler = require("../utils/asyncHandler");
+const ApiResponse = require("../utils/apiResponse");
 const {
   createCategory,
   getAllCategories,
@@ -7,75 +8,49 @@ const {
   deleteCategory,
 } = require("../services/category.service");
 
-// CREATE 
-
+// CREATE
 const create = asyncHandler(async (req, res) => {
   const category = await createCategory(req.body, req.user.id);
 
-  res.status(201).json({
-    success: true,
-    statusCode: 201,
-    message: "Category created successfully",
-    data: {
-      category,
-    },
-  });
+  res.status(201).json(
+    new ApiResponse(201, "Category created successfully", { category })
+  );
 });
 
-// GET ALL 
-
+// GET ALL
 const getAll = asyncHandler(async (req, res) => {
   const result = await getAllCategories(req.query);
 
-  res.status(200).json({
-    success: true,
-    statusCode: 200,
-    message: "Categories fetched successfully",
-    data: result,
-  });
+  res.status(200).json(
+    new ApiResponse(200, "Categories fetched successfully", result)
+  );
 });
 
-// GET ONE 
-
+// GET ONE
 const getOne = asyncHandler(async (req, res) => {
   const category = await getCategoryBySlug(req.params.slug);
 
-  res.status(200).json({
-    success: true,
-    statusCode: 200,
-    message: "Category fetched successfully",
-    data: {
-      category,
-    },
-  });
+  res.status(200).json(
+    new ApiResponse(200, "Category fetched successfully", { category })
+  );
 });
 
-// UPDATE 
-
+// UPDATE
 const update = asyncHandler(async (req, res) => {
   const category = await updateCategory(req.params.slug, req.body);
 
-  res.status(200).json({
-    success: true,
-    statusCode: 200,
-    message: "Category updated successfully",
-    data: {
-      category,
-    },
-  });
+  res.status(200).json(
+    new ApiResponse(200, "Category updated successfully", { category })
+  );
 });
 
-// DELETE 
-
+// DELETE
 const remove = asyncHandler(async (req, res) => {
   await deleteCategory(req.params.slug);
 
-  res.status(200).json({
-    success: true,
-    statusCode: 200,
-    message: "Category deleted successfully",
-    data: null,
-  });
+  res.status(200).json(
+    new ApiResponse(200, "Category deleted successfully", null)
+  );
 });
 
 module.exports = {

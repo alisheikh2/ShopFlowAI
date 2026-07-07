@@ -1,10 +1,10 @@
+const stripe = require("../config/stripe");
 const mongoose = require("mongoose");
-
 const Cart = require("../models/cart.model");
 const Order = require("../models/order.model");
 const Product = require("../models/product.model");
-
 const ApiError = require("../utils/apiError");
+const getSafeLimit = require("../utils/queryHelpers");
 
 const createOrder = async (userId, data) => {
   const session = await mongoose.startSession();
@@ -29,40 +29,22 @@ const createOrder = async (userId, data) => {
       const product = await Product.findById(item.product._id).session(session);
 
       if (!product) {
-        throw new ApiError(
-          404,
-          `Product "${item.product.name}" not found`
-        );
+        throw new ApiError(404, `Product "${item.product.name}" not found`);
       }
 
       if (!product.isPublished) {
-        throw new ApiError(
-          400,
-          `${product.name} is unavailable`
-        );
-      }
-
-      if (product.stock < item.quantity) {
-        throw new ApiError(
-          400,
-          `Insufficient stock for ${product.name}`
-        );
+        throw new ApiError(400, `${product.name} is unavailable`);
       }
 
       const price =
-        product.discountPrice > 0
-          ? product.discountPrice
-          : product.price;
+        product.discountPrice > 0 ? product.discountPrice : product.price;
 
       subtotal += price * item.quantity;
 
       orderItems.push({
         product: product._id,
         nameSnapshot: product.name,
-        imageSnapshot:
-          product.images.length > 0
-            ? product.images[0].url
-            : "",
+        imageSnapshot: product.images.length > 0 ? product.images[0].url : "",
         priceSnapshot: price,
         quantity: item.quantity,
       });
@@ -85,12 +67,15 @@ const createOrder = async (userId, data) => {
           paymentMethod,
         },
       ],
-      { session }
+      { session },
     );
 
     for (const item of cart.items) {
-      await Product.findByIdAndUpdate(
-        item.product._id,
+      const result = await Product.updateOne(
+        {
+          _id: item.product._id,
+          stock: { $gte: item.quantity },
+        },
         {
           $inc: {
             stock: -item.quantity,
@@ -98,8 +83,15 @@ const createOrder = async (userId, data) => {
         },
         {
           session,
-        }
+        },
       );
+
+      if (result.modifiedCount === 0) {
+        throw new ApiError(
+          400,
+          `Insufficient stock for ${item.nameSnapshot || item.product.name}`,
+        );
+      }
     }
 
     cart.items = [];
@@ -110,8 +102,8 @@ const createOrder = async (userId, data) => {
     const createdOrder = await Order.findById(order._id)
       .populate("user", "name email")
       .populate("items.product", "name slug images");
-      
-      return createdOrder;
+
+    return createdOrder;
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -137,45 +129,65 @@ const getSingleOrder = async (orderId, userId, role) => {
     throw new ApiError(404, "Order not found");
   }
 
-  if (
-    role !== "admin" &&
-    order.user._id.toString() !== userId.toString()
-  ) {
-    throw new ApiError(
-      403,
-      "You are not authorized to view this order"
-    );
+  if (role !== "admin" && order.user._id.toString() !== userId.toString()) {
+    throw new ApiError(403, "You are not authorized to view this order");
   }
 
   return order;
 };
 
-const getAllOrders = async () => {
-  return await Order.find()
+const getAllOrders = async (query) => {
+  const page = Number(query.page) || 1;
+  const limit = getSafeLimit(query.limit);
+  const skip = (page - 1) * limit;
+
+  const totalOrders = await Order.countDocuments();
+  const totalPages = Math.max(1, Math.ceil(totalOrders / limit));
+
+  const orders = await Order.find()
     .populate("user", "name email")
     .populate("items.product", "name slug images")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    orders,
+    pagination: {
+      totalOrders,
+      currentPage: page,
+      totalPages,
+      limit,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
-const updateOrderStatus = async (orderId, orderStatus) => {
+const updateOrderStatus = async (orderId, orderStatus, requestedBy) => {
+  const { userId, role } = requestedBy;
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
 
-    const order = await Order.findById(orderId)
-      .populate("items.product")
-      .session(session);
-
+    const order = await Order.findById(orderId).session(session);
     if (!order) {
       throw new ApiError(404, "Order not found");
     }
 
+    // Customers can only cancel their own orders — nothing else
+    if (role !== "admin") {
+      if (order.user.toString() !== userId.toString()) {
+        throw new ApiError(403, "You are not authorized to modify this order");
+      }
+      if (orderStatus !== "cancelled") {
+        throw new ApiError(403, "You can only cancel your order");
+      }
+    }
+
     if (order.orderStatus === orderStatus) {
-      throw new ApiError(
-        400,
-        `Order is already ${orderStatus}`
-      );
+      throw new ApiError(400, `Order is already ${orderStatus}`);
     }
 
     const allowedTransitions = {
@@ -186,19 +198,17 @@ const updateOrderStatus = async (orderId, orderStatus) => {
       cancelled: [],
     };
 
-    if (
-      !allowedTransitions[order.orderStatus].includes(orderStatus)
-    ) {
+    if (!allowedTransitions[order.orderStatus].includes(orderStatus)) {
       throw new ApiError(
         400,
-        `Cannot change order from ${order.orderStatus} to ${orderStatus}`
+        `Cannot change order from ${order.orderStatus} to ${orderStatus}`,
       );
     }
 
     if (orderStatus === "cancelled") {
       for (const item of order.items) {
         await Product.findByIdAndUpdate(
-          item.product._id,
+          item.product,
           {
             $inc: {
               stock: item.quantity,
@@ -206,17 +216,33 @@ const updateOrderStatus = async (orderId, orderStatus) => {
           },
           {
             session,
-          }
+          },
         );
+      }
+      if (
+        order.paymentMethod === "stripe" &&
+        order.paymentStatus === "paid" &&
+        order.paymentIntentId
+      ) {
+        try {
+          await stripe.refunds.create({
+            payment_intent: order.paymentIntentId,
+          });
+        } catch (refundError) {
+          console.error("Stripe refund failed:", refundError.message);
+          throw new ApiError(
+            500,
+            "Failed to process refund. Order not cancelled.",
+          );
+        }
+
+        order.paymentStatus = "refunded";
       }
     }
 
     order.orderStatus = orderStatus;
 
-    if (
-      order.paymentMethod === "cod" &&
-      orderStatus === "delivered"
-    ) {
+    if (order.paymentMethod === "cod" && orderStatus === "delivered") {
       order.paymentStatus = "paid";
     }
 

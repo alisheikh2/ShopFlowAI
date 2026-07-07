@@ -115,18 +115,18 @@ const updateReview = async (reviewId, userId, data) => {
   return review;
 };
 
-const deleteReview = async (reviewId, userId) => {
+const deleteReview = async (reviewId, userId, role) => {
   const review = await Review.findById(reviewId);
 
   if (!review) {
     throw new ApiError(404, "Review not found");
   }
 
-  if (review.user.toString() !== userId.toString()) {
-    throw new ApiError(
-      403,
-      "You can only delete your own review"
-    );
+  const isOwner = review.user.toString() === userId.toString();
+  const isAdmin = role === "admin";
+
+  if (!isOwner && !isAdmin) {
+    throw new ApiError(403, "You can only delete your own review");
   }
 
   const productId = review.product;

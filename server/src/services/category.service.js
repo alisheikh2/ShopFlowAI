@@ -1,11 +1,13 @@
+const slugify = require("slugify");
 const Category = require("../models/category.model");
+const Product = require("../models/product.model");
 const ApiError = require("../utils/apiError");
+const { escapeRegex, getSafeLimit } = require("../utils/queryHelpers");
 
 const generateSlug = (name) =>
-  name.toLowerCase().trim().replace(/\s+/g, "-");
+  slugify(name, { lower: true, strict: true, trim: true });
 
-// CREATE 
-
+// CREATE
 const createCategory = async (categoryData, userId) => {
   const slug = generateSlug(categoryData.name);
 
@@ -28,7 +30,7 @@ const createCategory = async (categoryData, userId) => {
 
 const getAllCategories = async (query) => {
   const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
+  const limit = getSafeLimit(query.limit);
 
   const skip = (page - 1) * limit;
 
@@ -37,7 +39,7 @@ const getAllCategories = async (query) => {
   // Search
   if (query.search) {
     filter.name = {
-      $regex: query.search,
+      $regex: escapeRegex(query.search),
       $options: "i",
     };
   }
@@ -92,7 +94,7 @@ const getAllCategories = async (query) => {
   };
 };
 
-// GET SINGLE 
+// GET SINGLE
 
 const getCategoryBySlug = async (slug) => {
   const category = await Category.findOne({
@@ -106,7 +108,7 @@ const getCategoryBySlug = async (slug) => {
   return category;
 };
 
-// UPDATE 
+// UPDATE
 
 const updateCategory = async (slug, updateData) => {
   const category = await Category.findOne({ slug });
@@ -134,19 +136,28 @@ const updateCategory = async (slug, updateData) => {
     {
       new: true,
       runValidators: true,
-    }
+    },
   ).populate("createdBy", "name");
 
   return updatedCategory;
 };
 
-// DELETE 
+// DELETE
 
 const deleteCategory = async (slug) => {
   const category = await Category.findOne({ slug });
 
   if (!category) {
     throw new ApiError(404, "Category not found");
+  }
+
+  const productCount = await Product.countDocuments({ category: category._id });
+
+  if (productCount > 0) {
+    throw new ApiError(
+      400,
+      `Cannot delete category — ${productCount} product(s) are still assigned to it. Reassign or delete them first.`,
+    );
   }
 
   await Category.findByIdAndDelete(category._id);

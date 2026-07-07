@@ -12,22 +12,31 @@ const {
   forgotPassword,
   resetPassword,
   googleLogin,
+  resendVerification,
 } = require("../services/user.service");
 const generateAccessAndRefreshTokens = require("../utils/generateTokens");
 const cookieOptions = require("../constants/cookieOptions");
 const sendEmail = require("../utils/sendEmail");
-const { verificationEmailTemplate } = require("../utils/emailTemplates");
+const { verificationEmailTemplate,
+        passwordResetEmailTemplate,
+ } = require("../utils/emailTemplates");
 
 const register = asyncHandler(async (req, res) => {
   const { user, verificationToken } = await registerUser(req.body);
 
   const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-  await sendEmail({
-    to: user.email,
-    subject: "Verify your ShopFlow AI account",
-    html: verificationEmailTemplate(user.name, verificationUrl),
-  });
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "Verify your ShopFlow AI account",
+      html: verificationEmailTemplate(user.name, verificationUrl),
+    });
+  } catch (emailError) {
+    // Don't fail registration just because SMTP hiccuped — the user
+    // account is already created; they can use /resend-verification.
+    console.error("Failed to send verification email:", emailError.message);
+  }
 
   return res.status(201).json(
     new ApiResponse(
@@ -79,12 +88,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
 
-    if (user.refreshToken !== incomingRefreshToken) {
+    if (!user.refreshToken.includes(incomingRefreshToken)) {
       throw new ApiError(401, "Refresh token does not match");
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
       user._id,
+      incomingRefreshToken,
     );
 
     res.cookie("refreshToken", refreshToken, {
@@ -113,12 +123,17 @@ const logout = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Refresh token missing");
   }
 
-  const decodedToken = jwt.verify(
-    incomingRefreshToken,
-    process.env.REFRESH_TOKEN_SECRET,
-  );
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+    );
 
-  await logoutUser(decodedToken.id);
+    await logoutUser(decodedToken.id, incomingRefreshToken);
+  } catch {
+    // Token is already invalid or expired.
+    // Still continue clearing the cookie.
+  }
 
   res.clearCookie("refreshToken", cookieOptions);
 
@@ -146,6 +161,10 @@ const googleLoginController = asyncHandler(async (req, res) => {
     decodedToken = await getAuth().verifyIdToken(idToken);
   } catch {
     throw new ApiError(401, "Invalid Google ID token");
+  }
+
+  if (!decodedToken.email_verified) {
+    throw new ApiError(401, "Google account email is not verified");
   }
 
   const user = await googleLogin(decodedToken);
@@ -176,29 +195,27 @@ const verifyEmailController = asyncHandler(async (req, res) => {
 });
 
 const forgotPasswordController = asyncHandler(async (req, res) => {
-  const { user, resetToken } = await forgotPassword(req.body.email);
+  const result = await forgotPassword(req.body.email);
 
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+  if (result) {
+    const { user, resetToken } = result;
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-  await sendEmail({
-    to: user.email,
-    subject: "Reset your ShopFlow AI password",
-    html: `
-      <h2>Password Reset</h2>
-      <p>Hello ${user.name},</p>
-      <p>Click the link below to reset your password:</p>
-
-      <a href="${resetUrl}">
-        Reset Password
-      </a>
-
-      <p>This link will expire in 1 hour.</p>
-    `,
-  });
+    await sendEmail({
+      to: user.email,
+      subject: "Reset your ShopFlow AI password",
+      html: passwordResetEmailTemplate(user.name, resetUrl),
+    });
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, "Password reset email sent successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        "If an account with that email exists, a password reset link has been sent.",
+      ),
+    );
 });
 
 const resetPasswordController = asyncHandler(async (req, res) => {
@@ -207,6 +224,34 @@ const resetPasswordController = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "Password reset successfully"));
+});
+
+const resendVerificationController = asyncHandler(async (req, res) => {
+  const result = await resendVerification(req.body.email);
+
+  if (result) {
+    const { user, verificationToken } = result;
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your ShopFlow AI account",
+        html: verificationEmailTemplate(user.name, verificationUrl),
+      });
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError.message);
+    }
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        "If an account with that email exists and isn't verified, a new verification link has been sent.",
+      ),
+    );
 });
 
 module.exports = {
@@ -219,4 +264,5 @@ module.exports = {
   verifyEmailController,
   forgotPasswordController,
   resetPasswordController,
+  resendVerificationController,
 };

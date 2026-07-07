@@ -1,12 +1,40 @@
+const slugify = require("slugify");
 const Product = require("../models/product.model");
 const Category = require("../models/category.model");
+const Wishlist = require("../models/wishlist.model");
+const Review = require("../models/review.model");
 const ApiError = require("../utils/apiError");
+const { escapeRegex, getSafeLimit } = require("../utils/queryHelpers");
 const {
   uploadToCloudinary,
   deleteFromCloudinary,
 } = require("../utils/cloudinaryUpload");
 
+const ALLOWED_PRODUCT_FIELDS = [
+  "name",
+  "description",
+  "price",
+  "discountPrice",
+  "stock",
+  "brand",
+  "category",
+  "isFeatured",
+  "isPublished",
+  "images",
+];
+
+const pickAllowedFields = (source) => {
+  const picked = {};
+  for (const field of ALLOWED_PRODUCT_FIELDS) {
+    if (source[field] !== undefined) {
+      picked[field] = source[field];
+    }
+  }
+  return picked;
+};
+
 const createProduct = async (productData, userId) => {
+  productData = pickAllowedFields(productData);
   // Check category exists
   const category = await Category.findById(productData.category);
 
@@ -15,11 +43,11 @@ const createProduct = async (productData, userId) => {
   }
 
   // Generate slug
-  const slug = productData.name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-");
-
+  const slug = slugify(productData.name, {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
   // Check duplicate product BEFORE uploading images
   const existingProduct = await Product.findOne({ slug });
 
@@ -31,17 +59,16 @@ const createProduct = async (productData, userId) => {
   let uploadedImages = [];
 
   if (productData.images?.length) {
-    for (const image of productData.images) {
-      const uploaded = await uploadToCloudinary(
-  image,
-  "shopflow/products"
-);
+    const uploads = await Promise.all(
+      productData.images.map((image) =>
+        uploadToCloudinary(image, "shopflow/products"),
+      ),
+    );
 
-uploadedImages.push({
-  public_id: uploaded.public_id,
-  url: uploaded.secure_url,
-});
-    }
+    uploadedImages = uploads.map((uploaded) => ({
+      public_id: uploaded.public_id,
+      url: uploaded.secure_url,
+    }));
   }
 
   // Create product
@@ -66,7 +93,7 @@ uploadedImages.push({
 
 const getAllProducts = async (query) => {
   const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
+  const limit = getSafeLimit(query.limit);
   const skip = (page - 1) * limit;
 
   const filter = {
@@ -76,7 +103,7 @@ const getAllProducts = async (query) => {
   // Search
   if (query.search) {
     filter.name = {
-      $regex: query.search,
+      $regex: escapeRegex(query.search),
       $options: "i",
     };
   }
@@ -164,6 +191,7 @@ const getProductBySlug = async (slug) => {
 };
 
 const updateProduct = async (slug, updateData) => {
+  updateData = pickAllowedFields(updateData);
   const product = await Product.findOne({ slug });
 
   if (!product) {
@@ -179,59 +207,60 @@ const updateProduct = async (slug, updateData) => {
     }
   }
 
-  // Update slug
   // Update slug + check duplicate
-if (updateData.name) {
-  updateData.slug = updateData.name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-");
+  if (updateData.name) {
+    updateData.slug = slugify(updateData.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
 
-  const existingProduct = await Product.findOne({
-    slug: updateData.slug,
-    _id: { $ne: product._id },
-  });
+    const existingProduct = await Product.findOne({
+      slug: updateData.slug,
+      _id: { $ne: product._id },
+    });
 
-  if (existingProduct) {
-    throw new ApiError(
-      409,
-      "A product with the same name already exists"
-    );
-  }
-}
-
-if (updateData.images?.length) {
-
-  // Delete old images
-  for (const image of product.images) {
-    await deleteFromCloudinary(image.public_id);
+    if (existingProduct) {
+      throw new ApiError(409, "A product with the same name already exists");
+    }
   }
 
-  const uploadedImages = [];
+  if (updateData.images?.length) {
+    const oldImages = product.images; // keep reference before overwriting
 
-  for (const image of updateData.images) {
-    const uploaded = await uploadToCloudinary(
-      image,
-      "shopflow/products"
+    // Upload new images FIRST — if this fails, old images stay intact
+    const uploads = await Promise.all(
+      updateData.images.map((image) =>
+        uploadToCloudinary(image, "shopflow/products"),
+      ),
     );
 
-    uploadedImages.push({
+    updateData.images = uploads.map((uploaded) => ({
       public_id: uploaded.public_id,
       url: uploaded.secure_url,
-    });
+    }));
+
+    if (oldImages?.length) {
+      try {
+        await Promise.all(
+          oldImages.map((image) => deleteFromCloudinary(image.public_id)),
+        );
+      } catch (err) {
+        console.error(
+          "Failed to delete old product images from Cloudinary:",
+          err.message,
+        );
+      }
+    }
   }
 
-  updateData.images = uploadedImages;
-}
-
-  
   const updatedProduct = await Product.findByIdAndUpdate(
     product._id,
     updateData,
     {
       new: true,
       runValidators: true,
-    }
+    },
   )
     .populate("createdBy", "name")
     .populate("category", "name slug");
@@ -245,18 +274,111 @@ const deleteProduct = async (slug) => {
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
-   {
+
   if (product.images?.length) {
-  await Promise.all(
-    product.images.map((image) =>
-      deleteFromCloudinary(image.public_id)
-    )
-  );
-}
-}
+    await Promise.all(
+      product.images.map((image) => deleteFromCloudinary(image.public_id)),
+    );
+  }
 
+  await Promise.all([
+    Product.findByIdAndDelete(product._id),
+    Wishlist.deleteMany({ product: product._id }),
+    Review.deleteMany({ product: product._id }),
+  ]);
+};
 
-  await Product.findByIdAndDelete(product._id);
+const getAllProductsAdmin = async (query) => {
+  const page = Number(query.page) || 1;
+  const limit = getSafeLimit(query.limit);
+  const skip = (page - 1) * limit;
+
+  const filter = {}; //
+
+  // Search
+  if (query.search) {
+    filter.name = {
+      $regex: escapeRegex(query.search),
+      $options: "i",
+    };
+  }
+
+  // Brand Filter
+  if (query.brand) {
+    filter.brand = query.brand;
+  }
+
+  // Category Filter
+  if (query.category) {
+    filter.category = query.category;
+  }
+
+  // Featured Filter
+  if (query.featured !== undefined) {
+    filter.isFeatured = query.featured === "true";
+  }
+
+  // Published Filter
+  if (query.published !== undefined) {
+    filter.isPublished = query.published === "true";
+  }
+
+  const totalProducts = await Product.countDocuments(filter);
+  const totalPages = Math.max(1, Math.ceil(totalProducts / limit));
+
+  let sortOption = { createdAt: -1 };
+
+  switch (query.sort) {
+    case "price":
+      sortOption = { price: 1 };
+      break;
+    case "-price":
+      sortOption = { price: -1 };
+      break;
+    case "name":
+      sortOption = { name: 1 };
+      break;
+    case "-name":
+      sortOption = { name: -1 };
+      break;
+    case "createdAt":
+      sortOption = { createdAt: 1 };
+      break;
+    case "-createdAt":
+      sortOption = { createdAt: -1 };
+      break;
+  }
+
+  const products = await Product.find(filter)
+    .sort(sortOption)
+    .skip(skip)
+    .limit(limit)
+    .populate("createdBy", "name")
+    .populate("category", "name slug");
+
+  return {
+    products,
+    pagination: {
+      totalProducts,
+      currentPage: page,
+      totalPages,
+      limit,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+const getProductBySlugAdmin = async (slug) => {
+  const product = await Product.findOne({ slug })
+    .populate("createdBy", "name")
+    .populate("category", "name slug");
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return product;
 };
 
 module.exports = {
@@ -265,4 +387,6 @@ module.exports = {
   getProductBySlug,
   updateProduct,
   deleteProduct,
+  getAllProductsAdmin,
+  getProductBySlugAdmin,
 };

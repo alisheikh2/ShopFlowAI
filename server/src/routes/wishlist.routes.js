@@ -1,4 +1,5 @@
 const express = require("express");
+const ROLES = require("../constants/roles");
 
 const {
   addToWishlistController,
@@ -8,42 +9,36 @@ const {
 } = require("../controllers/wishlist.controller");
 
 const verifyJWT = require("../middleware/verifyJWT");
+const verifyRole = require("../middleware/verifyRole");
 const validateRequest = require("../middleware/validateRequest");
 
-const {
-  productIdValidation,
-} = require("../validations/wishlist.validation");
+const { productIdValidation } = require("../validations/wishlist.validation");
 
 const router = express.Router();
 
+router.use(verifyJWT, verifyRole(ROLES.CUSTOMER));
+
 router.post(
   "/:productId",
-  verifyJWT,
   productIdValidation,
   validateRequest,
-  addToWishlistController
+  addToWishlistController,
 );
 
 router.delete(
   "/:productId",
-  verifyJWT,
   productIdValidation,
   validateRequest,
   removeFromWishlistController,
 );
 
-router.get(
-  "/",
-  verifyJWT,
-  getUserWishlistController
-);
+router.get("/", getUserWishlistController);
 
 router.get(
   "/status/:productId",
-  verifyJWT,
   productIdValidation,
   validateRequest,
-  checkWishlistStatusController
+  checkWishlistStatusController,
 );
 
 module.exports = router;

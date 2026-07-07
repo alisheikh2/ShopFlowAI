@@ -24,27 +24,31 @@ const createPaymentIntentController = asyncHandler(async (req, res) => {
 });
 
 const stripeWebhookController = async (req, res) => {
-  try {
-    const signature = req.headers["stripe-signature"];
+  const signature = req.headers["stripe-signature"];
+  let event;
 
-    const event = stripe.webhooks.constructEvent(
+  // Step 1: verify signature — any failure here is ALWAYS a 400
+  // (bad/missing secret, tampered payload, wrong raw-body config)
+  try {
+    event = stripe.webhooks.constructEvent(
       req.body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
-
-    await handleStripeWebhook(event);
-
-    return res.status(200).json({
-      received: true,
-    });
   } catch (error) {
-    console.error("WEBHOOK ERROR:");
-    console.error(error);
+    console.error("WEBHOOK SIGNATURE ERROR:", error.message);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
+  }
 
-    return res.status(500).json({
-      error: error.message,
-    });
+  // Step 2: run business logic — genuine unexpected failures should be
+  // 500 so Stripe retries; expected "soft" cases (order not found) are
+  // already handled inside handleStripeWebhook by returning normally.
+  try {
+    await handleStripeWebhook(event);
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error("WEBHOOK HANDLER ERROR:", error.message);
+    return res.status(500).json({ error: "Internal webhook error" });
   }
 };
 

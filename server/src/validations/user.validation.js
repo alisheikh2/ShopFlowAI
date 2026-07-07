@@ -55,9 +55,19 @@ const resetPasswordValidation = [
     ),
 ];
 
+const resendVerificationValidation = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email"),
+];
+
 module.exports = {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
-  resetPasswordValidation
+  resetPasswordValidation,
+  resendVerificationValidation
 };

@@ -55,23 +55,18 @@ const getOne = asyncHandler(async (req, res) => {
 });
 
 const getAll = asyncHandler(async (req, res) => {
-  const orders = await orderService.getAllOrders();
+  const result = await orderService.getAllOrders(req.query); 
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      "All orders fetched successfully",
-      {
-        orders,
-      }
-    )
+    new ApiResponse(200, "All orders fetched successfully", result),
   );
 });
 
 const updateStatus = asyncHandler(async (req, res) => {
   const order = await orderService.updateOrderStatus(
     req.params.id,
-    req.body.orderStatus
+    req.body.orderStatus,
+    { userId: req.user._id, role: req.user.role },
   );
 
   return res.status(200).json(
@@ -81,7 +76,19 @@ const updateStatus = asyncHandler(async (req, res) => {
       {
         order,
       }
-    )
+    ),
+  );
+});
+
+const cancelMyOrder = asyncHandler(async (req, res) => {
+  const order = await orderService.updateOrderStatus(
+    req.params.id,
+    "cancelled",
+    { userId: req.user._id, role: req.user.role },
+  );
+
+  return res.status(200).json(
+    new ApiResponse(200, "Order cancelled successfully", { order }),
   );
 });
 
@@ -91,4 +98,5 @@ module.exports = {
   getOne,
   getAll,
   updateStatus,
+  cancelMyOrder,
 };

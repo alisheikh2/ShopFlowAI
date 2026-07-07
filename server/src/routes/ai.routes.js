@@ -1,4 +1,5 @@
 const express = require("express");
+const ROLES = require("../constants/roles");
 
 const {
   generateDescriptionController,
@@ -11,13 +12,15 @@ const {
 const validateRequest = require("../middleware/validateRequest");
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
+const { aiLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
 router.post(
   "/generate-description",
   verifyJWT,
-  verifyRole("admin"),
+  verifyRole(ROLES.ADMIN),
+  aiLimiter,
   generateDescriptionValidation,
   validateRequest,
   generateDescriptionController

@@ -1,4 +1,5 @@
 const express = require("express");
+const ROLES = require("../constants/roles");
 
 const {
   add,
@@ -22,7 +23,7 @@ const router = express.Router();
 // Protected Customer Routes
 router.use(
   verifyJWT,
-  verifyRole("customer")
+  verifyRole(ROLES.CUSTOMER),
 );
 
 router.get("/", get);

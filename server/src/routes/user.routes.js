@@ -1,4 +1,5 @@
 const express = require("express");
+const ROLES = require("../constants/roles");
 const {
   register,
   login,
@@ -9,20 +10,24 @@ const {
   verifyEmailController,
   forgotPasswordController,
   resetPasswordController,
+  resendVerificationController,
 } = require("../controllers/user.controller");
 const {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  resendVerificationValidation,
 } = require("../validations/user.validation");
 const validateRequest = require("../middleware/validateRequest");
 const router = express.Router();
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
+const { authLimiter, forgotPasswordLimiter } = require("../middleware/rateLimiter");
 
 router.post(
-  "/register",
+ "/register",
+  authLimiter,
   registerValidation,
   validateRequest,
   register
@@ -30,6 +35,7 @@ router.post(
 
 router.post(
   "/login",
+  authLimiter,
   loginValidation,
   validateRequest,
   login
@@ -51,7 +57,7 @@ router.get(
 router.get(
   "/admin-test",
   verifyJWT,
-  verifyRole("admin"),
+  verifyRole(ROLES.ADMIN),
   (req, res) => {
     res.status(200).json({
       success: true,
@@ -72,6 +78,7 @@ router.get(
 
 router.post(
   "/forgot-password",
+  forgotPasswordLimiter,
   forgotPasswordValidation,
   validateRequest,
   forgotPasswordController
@@ -82,6 +89,14 @@ router.post(
   resetPasswordValidation,
   validateRequest,
   resetPasswordController
+);
+
+router.post(
+  "/resend-verification",
+  forgotPasswordLimiter,
+  resendVerificationValidation,
+  validateRequest,
+  resendVerificationController
 );
 
 module.exports = router;

@@ -39,7 +39,7 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const remove = asyncHandler(async (req, res) => {
-  await reviewService.deleteReview(req.params.id, req.user._id);
+  await reviewService.deleteReview(req.params.id, req.user._id, req.user.role);
 
   return res
     .status(200)

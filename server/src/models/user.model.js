@@ -53,8 +53,8 @@ const userSchema = new mongoose.Schema(
     },
 
     refreshToken: {
-      type: String,
-      default: "",
+      type: [String],
+      default: [],
     },
 
     isEmailVerified: {

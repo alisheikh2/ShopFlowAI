@@ -5,6 +5,7 @@ const generateProductDescription = async ({
   name,
   category,
   brand,
+  price,
   features,
 }) => {
   const prompt = `
@@ -17,6 +18,7 @@ Product Information:
 - Product Name: ${name}
 - Category: ${category}
 - Brand: ${brand}
+${price ? `- Price: ${price}` : ""}
 - Features: ${features.join(", ")}
 
 Rules:
@@ -28,6 +30,7 @@ Rules:
 - Prioritize practical customer benefits over simply listing technical specifications.
 - Organize the description logically: introduction → key features → customer benefits → concluding summary.
 - Highlight the product's key features and benefits naturally.
+${price ? "- You may use the price to position the product appropriately (e.g. value, mid-range, or premium) without stating the number as a sales pitch." : ""}
 - Do not invent specifications or features that were not provided.
 - Do not use exaggerated or generic marketing language.
 - Avoid phrases such as:
@@ -50,9 +53,10 @@ Rules:
 
     return response.text().trim();
   } catch (error) {
+    console.error("Gemini AI generation error:", error.message);
     throw new ApiError(
       503,
-      "AI service is temporarily unavailable. Please try again later."
+      "AI service is temporarily unavailable. Please try again later.",
     );
   }
 };

@@ -1,4 +1,5 @@
 const express = require("express");
+const ROLES = require("../constants/roles");
 
 const {
   create,
@@ -10,6 +11,7 @@ const {
 
 const {
   createCategoryValidation,
+  updateCategoryValidation,
 } = require("../validations/category.validation");
 
 const validateRequest = require("../middleware/validateRequest");
@@ -29,7 +31,7 @@ router.get("/:slug", getOne);
 router.post(
   "/",
   verifyJWT,
-  verifyRole("admin"),
+  verifyRole(ROLES.ADMIN),
   createCategoryValidation,
   validateRequest,
   create
@@ -38,8 +40,8 @@ router.post(
 router.put(
   "/:slug",
   verifyJWT,
-  verifyRole("admin"),
-  createCategoryValidation,
+  verifyRole(ROLES.ADMIN),
+  updateCategoryValidation, 
   validateRequest,
   update
 );
@@ -47,7 +49,7 @@ router.put(
 router.delete(
   "/:slug",
   verifyJWT,
-  verifyRole("admin"),
+  verifyRole(ROLES.ADMIN),
   remove
 );
 
