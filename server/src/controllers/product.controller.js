@@ -15,6 +15,8 @@ const create = asyncHandler(async (req, res) => {
     req.body.images = req.files.map((file) => {
       return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
     });
+  } else {
+    delete req.body.images;
   }
 
   const product = await createProduct(req.body, req.user._id);
@@ -47,7 +49,10 @@ const update = asyncHandler(async (req, res) => {
     req.body.images = req.files.map((file) => {
       return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
     });
-  }
+  } else {
+  delete req.body.images;   
+}
+
   const product = await updateProduct(req.params.slug, req.body);
 
   return res.status(200).json(
