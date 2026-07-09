@@ -5,6 +5,7 @@ validateEnv();
 
 const app = require("./src/app");
 const connectDB = require("./src/database/connectDB");
+const { closeRedisConnection } = require("./src/config/redis");
 const mongoose = require("mongoose");
 
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,9 @@ const gracefulShutdown = async (signal) => {
       try {
         await mongoose.disconnect();
         console.log("MongoDB disconnected.");
+
+        await closeRedisConnection();
+        console.log("Redis disconnected.");
       } catch (err) {
         console.error("Error during MongoDB disconnect:", err.message);
       }

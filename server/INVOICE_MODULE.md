@@ -87,3 +87,29 @@ LOW_STOCK_THRESHOLD=5
 ```
 
 If `ADMIN_NOTIFICATION_EMAILS` is empty, the system tries admin users from the database, then falls back to `SELLER_SUPPORT_EMAIL`.
+
+## Redis caching module
+
+Redis caching is available for high-read APIs and is disabled by default.
+
+Cached routes:
+
+- `GET /api/v1/products`
+- `GET /api/v1/products/:slug`
+- `GET /api/v1/categories`
+- `GET /api/v1/categories/:slug`
+- Admin analytics JSON endpoints under `/api/v1/analytics/*` except CSV export
+
+Enable it in `.env` when Redis is running:
+
+```env
+CACHE_ENABLED=true
+REDIS_URL=redis://localhost:6379
+CACHE_TTL_PRODUCTS=120
+CACHE_TTL_PRODUCT_DETAIL=300
+CACHE_TTL_CATEGORIES=600
+CACHE_TTL_CATEGORY_DETAIL=600
+CACHE_TTL_ANALYTICS=300
+```
+
+Cache is invalidated automatically on product/category/order/payment changes that can affect product listings, category data, or analytics.

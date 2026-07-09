@@ -2,6 +2,7 @@ const stripe = require("../config/stripe");
 const Order = require("../models/order.model");
 const ApiError = require("../utils/apiError");
 const { convertPKRtoUSD } = require("../utils/currencyConverter");
+const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
 const emailNotificationService = require("./emailNotification.service");
 
 const getOrderForEmail = async (orderId) =>
@@ -113,6 +114,8 @@ const handleStripeWebhook = async (event) => {
 
       await order.save();
 
+      await invalidateCacheGroups(["analytics"]);
+
       const paidOrderForEmail = await getOrderForEmail(order._id);
       if (paidOrderForEmail?.user?.email) {
         await emailNotificationService.sendPaymentSuccessEmail(paidOrderForEmail);
@@ -145,6 +148,8 @@ const handleStripeWebhook = async (event) => {
       await order.save({
         validateBeforeSave: false,
       });
+
+      await invalidateCacheGroups(["analytics"]);
 
       const failedOrderForEmail = await getOrderForEmail(order._id);
       if (failedOrderForEmail?.user?.email) {

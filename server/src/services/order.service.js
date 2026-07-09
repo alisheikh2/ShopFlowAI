@@ -5,6 +5,7 @@ const Order = require("../models/order.model");
 const Product = require("../models/product.model");
 const ApiError = require("../utils/apiError");
 const { getSafeLimit } = require("../utils/queryHelpers");
+const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
 const invoiceConfig = require("../config/invoice");
 const emailNotificationService = require("./emailNotification.service");
 const invoiceService = require("./invoice.service");
@@ -139,6 +140,8 @@ const createOrder = async (userId, data) => {
 
     await session.commitTransaction();
     transactionCommitted = true;
+
+    await invalidateCacheGroups(["products", "analytics"]);
 
     const createdOrder = await Order.findById(order._id)
       .populate("user", "name email")
@@ -311,6 +314,8 @@ const updateOrderStatus = async (orderId, orderStatus, requestedBy) => {
     await order.save({ session });
 
     await session.commitTransaction();
+
+    await invalidateCacheGroups(["products", "analytics"]);
 
     const updatedOrderForEmail = await Order.findById(order._id)
       .populate("user", "name email")

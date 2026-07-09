@@ -9,6 +9,7 @@ const {
   uploadToCloudinary,
   deleteFromCloudinary,
 } = require("../utils/cloudinaryUpload");
+const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
 
 const ALLOWED_PRODUCT_FIELDS = [
   "name",
@@ -101,7 +102,7 @@ const createProduct = async (productData, userId) => {
     createdBy: userId,
   });
 
-  return await product.populate([
+  const populatedProduct = await product.populate([
     {
       path: "createdBy",
       select: "name",
@@ -111,6 +112,10 @@ const createProduct = async (productData, userId) => {
       select: "name slug",
     },
   ]);
+
+  await invalidateCacheGroups(["products", "analytics"]);
+
+  return populatedProduct;
 };
 
 const getAllProducts = async (query) => {
@@ -310,6 +315,8 @@ const updateProduct = async (slug, updateData) => {
     .populate("createdBy", "name")
     .populate("category", "name slug");
 
+  await invalidateCacheGroups(["products", "analytics"]);
+
   return updatedProduct;
 };
 
@@ -331,6 +338,8 @@ const deleteProduct = async (slug) => {
     Wishlist.deleteMany({ product: product._id }),
     Review.deleteMany({ product: product._id }),
   ]);
+
+  await invalidateCacheGroups(["products", "analytics"]);
 };
 
 const getAllProductsAdmin = async (query) => {

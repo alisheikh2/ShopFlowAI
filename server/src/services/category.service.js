@@ -3,6 +3,7 @@ const Category = require("../models/category.model");
 const Product = require("../models/product.model");
 const ApiError = require("../utils/apiError");
 const { escapeRegex, getSafeLimit } = require("../utils/queryHelpers");
+const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
 
 const generateSlug = (name) =>
   slugify(name, { lower: true, strict: true, trim: true });
@@ -23,7 +24,11 @@ const createCategory = async (categoryData, userId) => {
     createdBy: userId,
   });
 
-  return category.populate("createdBy", "name");
+  const populatedCategory = await category.populate("createdBy", "name");
+
+  await invalidateCacheGroups(["categories", "products", "analytics"]);
+
+  return populatedCategory;
 };
 
 // GET ALL
@@ -139,6 +144,8 @@ const updateCategory = async (slug, updateData) => {
     },
   ).populate("createdBy", "name");
 
+  await invalidateCacheGroups(["categories", "products", "analytics"]);
+
   return updatedCategory;
 };
 
@@ -161,6 +168,8 @@ const deleteCategory = async (slug) => {
   }
 
   await Category.findByIdAndDelete(category._id);
+
+  await invalidateCacheGroups(["categories", "products", "analytics"]);
 };
 
 module.exports = {

@@ -14,6 +14,11 @@ const {
   createProductValidation,
   updateProductValidation,
 } = require("../validations/product.validation");
+const { cacheResponse, getCacheTTL } = require("../middleware/cache.middleware");
+const {
+  buildProductDetailKey,
+  buildProductsListKey,
+} = require("../utils/cacheKeys");
 const validateRequest = require("../middleware/validateRequest");
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
@@ -21,14 +26,17 @@ const upload = require("../middleware/upload.middleware");
 
 const router = express.Router();
 
-router.get("/", getAll);
+const productsListTTL = getCacheTTL(process.env.CACHE_TTL_PRODUCTS, 120);
+const productDetailTTL = getCacheTTL(process.env.CACHE_TTL_PRODUCT_DETAIL, 300);
+
+router.get("/", cacheResponse(productsListTTL, buildProductsListKey), getAll);
 
 //Admin routes
 router.get("/admin/all", verifyJWT, verifyRole(ROLES.ADMIN), getAllAdmin);
 
 router.get("/admin/:slug", verifyJWT, verifyRole(ROLES.ADMIN), getOneAdmin);
 
-router.get("/:slug", getOne);
+router.get("/:slug", cacheResponse(productDetailTTL, buildProductDetailKey), getOne);
 
 router.post(
   "/",
