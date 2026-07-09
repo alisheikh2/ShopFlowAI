@@ -10,6 +10,7 @@ const orderRoutes = require("./order.routes");
 const wishlistRoutes = require("./wishlist.routes");
 const aiRoutes = require("./ai.routes");
 const paymentRoutes = require("./payment.routes");
+const analyticsRoutes = require("./analytics.routes");
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.use("/orders", orderRoutes);
 router.use("/wishlist", wishlistRoutes);
 router.use("/ai", aiRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/analytics", analyticsRoutes);
 
 module.exports = router;

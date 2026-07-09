@@ -68,6 +68,7 @@ const orderSchema = new mongoose.Schema(
         type: String,
         required: true,
         trim: true,
+        lowercase: true,
       },
 
       postalCode: {
@@ -134,5 +135,13 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// Indexes
+orderSchema.index({ user: 1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 }); 
+orderSchema.index({ "items.product": 1 });               
+orderSchema.index({ orderStatus: 1 });                    
+orderSchema.index({ "shippingAddress.city": 1 });        
+
 
 module.exports = mongoose.model("Order", orderSchema);

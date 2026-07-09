@@ -25,45 +25,49 @@ const createReview = async (userId, data) => {
 
   const product = await Product.findById(productId);
 
-if (!product) {
-  throw new ApiError(404, "Product not found");
-}
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
 
-const hasPurchased = await Order.exists({
-  user: userId,
-  orderStatus: "delivered",
-  "items.product": product._id,
-});
-
-if (!hasPurchased) {
-  throw new ApiError(
-    403,
-    "You can only review products you have purchased and received"
-  );
-}
-
-const existingReview = await Review.findOne({
-  user: userId,
-  product: productId,
-});
-
-if (existingReview) {
-  throw new ApiError(
-    400,
-    "You have already reviewed this product"
-  );
-}
-
-  const review = await Review.create({
+  const hasPurchased = await Order.exists({
     user: userId,
-    product: productId,
-    rating,
-    comment,
+    orderStatus: "delivered",
+    "items.product": product._id,
   });
 
-  await updateProductRating(productId);
+  if (!hasPurchased) {
+    throw new ApiError(
+      403,
+      "You can only review products you have purchased and received",
+    );
+  }
 
-  return review;
+  const existingReview = await Review.findOne({
+    user: userId,
+    product: productId,
+  });
+
+  if (existingReview) {
+    throw new ApiError(400, "You have already reviewed this product");
+  }
+
+  try {
+    const review = await Review.create({
+      user: userId,
+      product: productId,
+      rating,
+      comment,
+    });
+
+    await updateProductRating(productId);
+
+    return review;
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new ApiError(400, "You have already reviewed this product");
+    }
+    throw error;
+  }
 };
 
 const getProductReviews = async (slug) => {
@@ -94,10 +98,7 @@ const updateReview = async (reviewId, userId, data) => {
   }
 
   if (review.user.toString() !== userId.toString()) {
-    throw new ApiError(
-      403,
-      "You can only update your own review"
-    );
+    throw new ApiError(403, "You can only update your own review");
   }
 
   if (data.rating !== undefined) {

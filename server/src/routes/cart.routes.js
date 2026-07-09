@@ -1,5 +1,6 @@
 const express = require("express");
 const ROLES = require("../constants/roles");
+const { mongoIdParamValidation } = require("../validations/commonValidation");
 
 const {
   add,
@@ -37,12 +38,18 @@ router.post(
 
 router.put(
   "/:productId",
+  mongoIdParamValidation("productId"),
   updateCartValidation,
   validateRequest,
   update
 );
 
-router.delete("/:productId", remove);
+router.delete(
+  "/:productId",
+  mongoIdParamValidation("productId"),
+  validateRequest,      
+  remove
+);
 
 router.delete("/", clear);
 

@@ -52,11 +52,11 @@ const addToCart = async (userId, productId, quantity = 1) => {
     throw new ApiError(400, `Only ${product.stock} item(s) available in stock`);
   }
 
-  let cart = await Cart.findOne({ user: userId });
-
-  if (!cart) {
-    cart = await Cart.create({ user: userId, items: [] });
-  }
+  let cart = await Cart.findOneAndUpdate(
+    { user: userId },
+    { $setOnInsert: { user: userId, items: [] } },
+    { upsert: true, new: true },
+  );
 
   const existingItem = cart.items.find(
     (item) => item.product.toString() === productId
