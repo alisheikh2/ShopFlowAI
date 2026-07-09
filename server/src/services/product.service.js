@@ -12,6 +12,7 @@ const {
 
 const ALLOWED_PRODUCT_FIELDS = [
   "name",
+  "sku",
   "description",
   "price",
   "discountPrice",
@@ -45,6 +46,15 @@ const createProduct = async (productData, userId) => {
       400,
       "Discount price must be less than the regular price",
     );
+  }
+
+  if (productData.sku) {
+    productData.sku = productData.sku.toUpperCase();
+    const existingSku = await Product.findOne({ sku: productData.sku });
+
+    if (existingSku) {
+      throw new ApiError(409, "A product with the same SKU already exists");
+    }
   }
 
   // Check category exists
@@ -208,6 +218,18 @@ const updateProduct = async (slug, updateData) => {
 
   if (!product) {
     throw new ApiError(404, "Product not found");
+  }
+
+  if (updateData.sku) {
+    updateData.sku = updateData.sku.toUpperCase();
+    const existingSku = await Product.findOne({
+      sku: updateData.sku,
+      _id: { $ne: product._id },
+    });
+
+    if (existingSku) {
+      throw new ApiError(409, "A product with the same SKU already exists");
+    }
   }
 
   // Validate category

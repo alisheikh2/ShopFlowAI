@@ -13,6 +13,12 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
     },
 
+    skuSnapshot: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     imageSnapshot: {
       type: String,
       default: "",
@@ -28,6 +34,50 @@ const orderItemSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
+    },
+
+    taxSnapshot: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const addressSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      trim: true,
+    },
+
+    phone: {
+      type: String,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+
+    postalCode: {
+      type: String,
+      trim: true,
+    },
+
+    country: {
+      type: String,
+      trim: true,
     },
   },
   {
@@ -84,6 +134,17 @@ const orderSchema = new mongoose.Schema(
       },
     },
 
+    billingAddress: {
+      type: addressSchema,
+      default: undefined,
+    },
+
+    deliveryMethod: {
+      type: String,
+      trim: true,
+      default: "Standard Delivery",
+    },
+
     subtotal: {
       type: Number,
       required: true,
@@ -125,6 +186,23 @@ const orderSchema = new mongoose.Schema(
       default: "",
     },
 
+    transactionReference: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    invoiceNumber: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
+
+    invoiceEmailSentAt: {
+      type: Date,
+    },
+
     orderStatus: {
       type: String,
       enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
@@ -138,10 +216,9 @@ const orderSchema = new mongoose.Schema(
 
 // Indexes
 orderSchema.index({ user: 1 });
-orderSchema.index({ paymentStatus: 1, createdAt: -1 }); 
-orderSchema.index({ "items.product": 1 });               
-orderSchema.index({ orderStatus: 1 });                    
-orderSchema.index({ "shippingAddress.city": 1 });        
-
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ "items.product": 1 });
+orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ "shippingAddress.city": 1 });
 
 module.exports = mongoose.model("Order", orderSchema);

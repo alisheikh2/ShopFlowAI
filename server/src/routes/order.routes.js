@@ -8,6 +8,7 @@ const {
   getAll,
   updateStatus,
   cancelMyOrder,
+  downloadInvoice,
 } = require("../controllers/order.controller");
 
 const {
@@ -33,6 +34,14 @@ router.post(
 );
 
 router.get("/my-orders", verifyJWT, verifyRole(ROLES.CUSTOMER), getMyOrders);
+
+router.get(
+  "/:id/invoice",
+  verifyJWT,
+  mongoIdParamValidation("id"),
+  validateRequest,
+  downloadInvoice,
+);
 
 router.get(
   "/:id",

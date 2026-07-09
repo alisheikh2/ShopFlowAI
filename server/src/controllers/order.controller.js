@@ -2,6 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiResponse = require("../utils/apiResponse");
 
 const orderService = require("../services/order.service");
+const invoiceService = require("../services/invoice.service");
 
 const create = asyncHandler(async (req, res) => {
   const order = await orderService.createOrder(
@@ -92,6 +93,22 @@ const cancelMyOrder = asyncHandler(async (req, res) => {
   );
 });
 
+const downloadInvoice = asyncHandler(async (req, res) => {
+  const { invoiceNumber, pdfBuffer } = await invoiceService.getInvoicePdfForOrder(
+    req.params.id,
+    { userId: req.user._id, role: req.user.role },
+  );
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="ShopFlowAI-Invoice-${invoiceNumber}.pdf"`,
+  );
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  return res.status(200).send(pdfBuffer);
+});
+
 module.exports = {
   create,
   getMyOrders,
@@ -99,4 +116,5 @@ module.exports = {
   getAll,
   updateStatus,
   cancelMyOrder,
+  downloadInvoice,
 };

@@ -31,6 +31,54 @@ const createOrderValidation = [
     .notEmpty()
     .withMessage("Country is required"),
 
+  body("billingAddress.fullName")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing full name cannot be empty"),
+
+  body("billingAddress.phone")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing phone cannot be empty"),
+
+  body("billingAddress.address")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing address cannot be empty"),
+
+  body("billingAddress.city")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing city cannot be empty"),
+
+  body("billingAddress.postalCode")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing postal code cannot be empty"),
+
+  body("billingAddress.country")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Billing country cannot be empty"),
+
+  body("deliveryMethod")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage("Delivery method must be between 2 and 80 characters"),
+
+  body("transactionReference")
+    .optional()
+    .trim()
+    .isLength({ max: 120 })
+    .withMessage("Transaction reference cannot exceed 120 characters"),
+
   body("paymentMethod")
     .optional()
     .isIn(["cod", "stripe"])

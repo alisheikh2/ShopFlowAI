@@ -4,15 +4,41 @@ const Cart = require("../models/cart.model");
 const Order = require("../models/order.model");
 const Product = require("../models/product.model");
 const ApiError = require("../utils/apiError");
-const getSafeLimit = require("../utils/queryHelpers");
+const { getSafeLimit } = require("../utils/queryHelpers");
+const invoiceConfig = require("../config/invoice");
+const emailNotificationService = require("./emailNotification.service");
+const invoiceService = require("./invoice.service");
+
+const roundMoney = (amount) => Math.round(Number(amount || 0) * 100) / 100;
+
+const getProductSku = (product) => {
+  if (product.sku) return product.sku;
+  return `SKU-${product._id.toString().slice(-8).toUpperCase()}`;
+};
+
+const getBillingAddress = (billingAddress, shippingAddress) => {
+  if (!billingAddress) return shippingAddress;
+
+  return {
+    ...shippingAddress,
+    ...billingAddress,
+  };
+};
 
 const createOrder = async (userId, data) => {
   const session = await mongoose.startSession();
+  let transactionCommitted = false;
 
   try {
     session.startTransaction();
 
-    const { shippingAddress, paymentMethod = "cod" } = data;
+    const {
+      shippingAddress,
+      billingAddress,
+      paymentMethod = "cod",
+      deliveryMethod = invoiceConfig.defaultDeliveryMethod,
+      transactionReference = "",
+    } = data;
 
     const cart = await Cart.findOne({ user: userId })
       .populate("items.product")
@@ -24,6 +50,7 @@ const createOrder = async (userId, data) => {
 
     const orderItems = [];
     let subtotal = 0;
+    let totalTax = 0;
 
     for (const item of cart.items) {
       const product = await Product.findById(item.product._id).session(session);
@@ -39,32 +66,45 @@ const createOrder = async (userId, data) => {
       const price =
         product.discountPrice > 0 ? product.discountPrice : product.price;
 
-      subtotal += price * item.quantity;
+      const lineSubtotal = roundMoney(price * item.quantity);
+      const lineTax = roundMoney((lineSubtotal * invoiceConfig.taxRate) / 100);
+
+      subtotal += lineSubtotal;
+      totalTax += lineTax;
 
       orderItems.push({
         product: product._id,
         nameSnapshot: product.name,
+        skuSnapshot: getProductSku(product),
         imageSnapshot: product.images.length > 0 ? product.images[0].url : "",
         priceSnapshot: price,
         quantity: item.quantity,
+        taxSnapshot: lineTax,
       });
     }
 
+    subtotal = roundMoney(subtotal);
     const shippingFee = 0;
-    const tax = 0;
-    const totalAmount = subtotal + shippingFee + tax;
+    const tax = roundMoney(totalTax);
+    const totalAmount = roundMoney(subtotal + shippingFee + tax);
+    const orderId = new mongoose.Types.ObjectId();
 
     const [order] = await Order.create(
       [
         {
+          _id: orderId,
           user: userId,
           items: orderItems,
           shippingAddress,
+          billingAddress: getBillingAddress(billingAddress, shippingAddress),
+          deliveryMethod,
           subtotal,
           shippingFee,
           tax,
           totalAmount,
           paymentMethod,
+          transactionReference,
+          invoiceNumber: invoiceService.generateInvoiceNumber(orderId),
         },
       ],
       { session },
@@ -98,14 +138,36 @@ const createOrder = async (userId, data) => {
     await cart.save({ session });
 
     await session.commitTransaction();
+    transactionCommitted = true;
 
     const createdOrder = await Order.findById(order._id)
       .populate("user", "name email")
-      .populate("items.product", "name slug images");
+      .populate("items.product", "name slug images description sku stock price discountPrice");
+
+    // Email notifications should not rollback a successfully placed order if SMTP fails.
+    if (createdOrder.user?.email) {
+      await emailNotificationService.sendOrderConfirmationEmail(createdOrder);
+    }
+
+    try {
+      if (createdOrder.user?.email) {
+        await invoiceService.sendOrderInvoiceEmail(createdOrder);
+      }
+    } catch (emailError) {
+      console.error(
+        `Invoice email failed for order ${createdOrder._id}:`,
+        emailError.message,
+      );
+    }
+
+    await emailNotificationService.sendAdminNewOrderEmail(createdOrder);
+    await emailNotificationService.sendLowStockAlertsForOrder(createdOrder);
 
     return createdOrder;
   } catch (error) {
-    await session.abortTransaction();
+    if (!transactionCommitted) {
+      await session.abortTransaction();
+    }
     throw error;
   } finally {
     await session.endSession();
@@ -116,14 +178,14 @@ const getMyOrders = async (userId) => {
   return await Order.find({
     user: userId,
   })
-    .populate("items.product", "name slug images")
+    .populate("items.product", "name slug images description sku stock price discountPrice")
     .sort({ createdAt: -1 });
 };
 
 const getSingleOrder = async (orderId, userId, role) => {
   const order = await Order.findById(orderId)
     .populate("user", "name email")
-    .populate("items.product", "name slug images");
+    .populate("items.product", "name slug images description sku stock price discountPrice");
 
   if (!order) {
     throw new ApiError(404, "Order not found");
@@ -146,7 +208,7 @@ const getAllOrders = async (query) => {
 
   const orders = await Order.find()
     .populate("user", "name email")
-    .populate("items.product", "name slug images")
+    .populate("items.product", "name slug images description sku stock price discountPrice")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -249,6 +311,17 @@ const updateOrderStatus = async (orderId, orderStatus, requestedBy) => {
     await order.save({ session });
 
     await session.commitTransaction();
+
+    const updatedOrderForEmail = await Order.findById(order._id)
+      .populate("user", "name email")
+      .populate("items.product", "name slug images description sku stock price discountPrice");
+
+    if (updatedOrderForEmail?.user?.email) {
+      await emailNotificationService.sendOrderStatusUpdateEmail(
+        updatedOrderForEmail,
+        orderStatus,
+      );
+    }
 
     return order;
   } catch (error) {

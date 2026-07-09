@@ -17,6 +17,15 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
 
+    sku: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      unique: true,
+      sparse: true,
+      maxlength: 80,
+    },
+
     description: {
       type: String,
       required: true,

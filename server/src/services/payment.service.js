@@ -2,6 +2,12 @@ const stripe = require("../config/stripe");
 const Order = require("../models/order.model");
 const ApiError = require("../utils/apiError");
 const { convertPKRtoUSD } = require("../utils/currencyConverter");
+const emailNotificationService = require("./emailNotification.service");
+
+const getOrderForEmail = async (orderId) =>
+  await Order.findById(orderId)
+    .populate("user", "name email")
+    .populate("items.product", "name slug images description sku stock price discountPrice");
 
 const createPaymentIntent = async (orderId, userId) => {
   const order = await Order.findById(orderId);
@@ -42,6 +48,11 @@ const createPaymentIntent = async (orderId, userId) => {
         order.paymentIntentId,
       );
 
+      if (!order.transactionReference) {
+        order.transactionReference = existingPaymentIntent.id;
+        await order.save({ validateBeforeSave: false });
+      }
+
       return {
         clientSecret: existingPaymentIntent.client_secret,
       };
@@ -61,6 +72,7 @@ const createPaymentIntent = async (orderId, userId) => {
   });
 
   order.paymentIntentId = paymentIntent.id;
+  order.transactionReference = paymentIntent.id;
 
   await order.save({
     validateBeforeSave: false,
@@ -97,8 +109,14 @@ const handleStripeWebhook = async (event) => {
 
       order.paymentStatus = "paid";
       order.orderStatus = "processing";
+      order.transactionReference = paymentIntent.id;
 
       await order.save();
+
+      const paidOrderForEmail = await getOrderForEmail(order._id);
+      if (paidOrderForEmail?.user?.email) {
+        await emailNotificationService.sendPaymentSuccessEmail(paidOrderForEmail);
+      }
 
       break;
     }
@@ -127,6 +145,11 @@ const handleStripeWebhook = async (event) => {
       await order.save({
         validateBeforeSave: false,
       });
+
+      const failedOrderForEmail = await getOrderForEmail(order._id);
+      if (failedOrderForEmail?.user?.email) {
+        await emailNotificationService.sendPaymentFailedEmail(failedOrderForEmail);
+      }
 
       break;
     }

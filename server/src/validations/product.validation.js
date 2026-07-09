@@ -8,6 +8,12 @@ const createProductValidation = [
     .isLength({ min: 3, max: 100 })
     .withMessage("Product name must be between 3 and 100 characters"),
 
+  body("sku")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage("SKU must be between 2 and 80 characters"),
+
   body("description")
     .trim()
     .notEmpty()
@@ -61,6 +67,12 @@ const updateProductValidation = [
     .trim()
     .isLength({ min: 3, max: 100 })
     .withMessage("Product name must be between 3 and 100 characters"),
+
+  body("sku")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage("SKU must be between 2 and 80 characters"),
 
   body("description")
     .optional()
