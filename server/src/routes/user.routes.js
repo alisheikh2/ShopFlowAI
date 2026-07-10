@@ -11,6 +11,9 @@ const {
   forgotPasswordController,
   resetPasswordController,
   resendVerificationController,
+  getAllUsersAdminController,
+  updateUserRoleController,
+  updateUserBanStatusController,
 } = require("../controllers/user.controller");
 const {
   registerValidation,
@@ -18,7 +21,10 @@ const {
   forgotPasswordValidation,
   resetPasswordValidation,
   resendVerificationValidation,
+  updateUserRoleValidation,
+  updateUserBanStatusValidation,
 } = require("../validations/user.validation");
+const { mongoIdParamValidation } = require("../validations/commonValidation");
 const validateRequest = require("../middleware/validateRequest");
 const router = express.Router();
 const verifyJWT = require("../middleware/verifyJWT");
@@ -51,6 +57,34 @@ router.get("/admin-test", verifyJWT, verifyRole(ROLES.ADMIN), (req, res) => {
     message: "Welcome Admin!",
   });
 });
+
+// Admin: user management
+router.get(
+  "/admin/all",
+  verifyJWT,
+  verifyRole(ROLES.ADMIN),
+  getAllUsersAdminController,
+);
+
+router.patch(
+  "/admin/:id/role",
+  verifyJWT,
+  verifyRole(ROLES.ADMIN),
+  mongoIdParamValidation("id"),
+  updateUserRoleValidation,
+  validateRequest,
+  updateUserRoleController,
+);
+
+router.patch(
+  "/admin/:id/ban",
+  verifyJWT,
+  verifyRole(ROLES.ADMIN),
+  mongoIdParamValidation("id"),
+  updateUserBanStatusValidation,
+  validateRequest,
+  updateUserBanStatusController,
+);
 
 router.post("/google-login", googleLoginController);
 

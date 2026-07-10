@@ -1,4 +1,5 @@
 const { body } = require("express-validator");
+const ROLES = require("../constants/roles");
 
 const registerValidation = [
   body("name")
@@ -64,10 +65,30 @@ const resendVerificationValidation = [
     .withMessage("Please provide a valid email"),
 ];
 
+const updateUserRoleValidation = [
+  body("role")
+    .trim()
+    .notEmpty()
+    .withMessage("Role is required")
+    .isIn([ROLES.ADMIN, ROLES.CUSTOMER])
+    .withMessage(`Role must be one of: ${ROLES.ADMIN}, ${ROLES.CUSTOMER}`),
+];
+
+const updateUserBanStatusValidation = [
+  body("isBanned")
+    .notEmpty()
+    .withMessage("isBanned is required")
+    .isBoolean()
+    .withMessage("isBanned must be a boolean")
+    .toBoolean(),
+];
+
 module.exports = {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
-  resendVerificationValidation
+  resendVerificationValidation,
+  updateUserRoleValidation,
+  updateUserBanStatusValidation,
 };

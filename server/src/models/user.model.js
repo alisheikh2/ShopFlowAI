@@ -60,6 +60,11 @@ const userSchema = new mongoose.Schema(
       default: ROLES.CUSTOMER,
     },
 
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+
     refreshToken: {
       type: [String],
       default: [],

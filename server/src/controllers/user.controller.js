@@ -13,6 +13,9 @@ const {
   resetPassword,
   googleLogin,
   resendVerification,
+  getAllUsersAdmin,
+  updateUserRoleAdmin,
+  updateUserBanStatusAdmin,
 } = require("../services/user.service");
 const generateAccessAndRefreshTokens = require("../utils/generateTokens");
 const { getTokenStorageCandidates } = require("../utils/tokenHash");
@@ -280,6 +283,42 @@ const resendVerificationController = asyncHandler(async (req, res) => {
     );
 });
 
+// ─── Admin: user management ───────────────────────────────────────────────
+
+const getAllUsersAdminController = asyncHandler(async (req, res) => {
+  const result = await getAllUsersAdmin(req.query);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Users fetched successfully", result));
+});
+
+const updateUserRoleController = asyncHandler(async (req, res) => {
+  const user = await updateUserRoleAdmin(
+    req.params.id,
+    req.body.role,
+    req.user._id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User role updated successfully", { user }));
+});
+
+const updateUserBanStatusController = asyncHandler(async (req, res) => {
+  const user = await updateUserBanStatusAdmin(
+    req.params.id,
+    req.body.isBanned,
+    req.user._id,
+  );
+
+  const message = req.body.isBanned
+    ? "User banned successfully"
+    : "User unbanned successfully";
+
+  return res.status(200).json(new ApiResponse(200, message, { user }));
+});
+
 module.exports = {
   register,
   login,
@@ -291,4 +330,7 @@ module.exports = {
   forgotPasswordController,
   resetPasswordController,
   resendVerificationController,
+  getAllUsersAdminController,
+  updateUserRoleController,
+  updateUserBanStatusController,
 };

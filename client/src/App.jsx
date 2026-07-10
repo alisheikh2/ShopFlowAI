@@ -15,6 +15,7 @@ import AdminProducts from './pages/AdminProducts'
 import AdminProductForm from './pages/AdminProductForm'
 import AdminCategories from './pages/AdminCategories'
 import AdminOrders from './pages/AdminOrders'
+import AdminUsers from './pages/AdminUsers'
 import { ForgotPassword, Login, Register } from './pages/Auth'
 import { ResendVerification, ResetPassword, VerifyEmail } from './pages/AuthRecovery'
 import PaymentRetry from './pages/PaymentRetry'
@@ -52,6 +53,7 @@ function App() {
             <Route path="admin/products/new" element={<AdminProductForm />} />
             <Route path="admin/products/:slug/edit" element={<AdminProductForm />} />
             <Route path="admin/categories" element={<AdminCategories />} />
+            <Route path="admin/users" element={<AdminUsers />} />
           </Route>
           <Route path="contact" element={<Placeholder title="Contact us" />} />
           <Route path="privacy-policy" element={<Placeholder title="Privacy Policy" />} />

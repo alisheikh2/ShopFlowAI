@@ -457,18 +457,23 @@ del { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
 .wishlist-btn.active { color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); border-color: transparent; }
 .admin-sidebar a { display: flex; align-items: center; gap: 10px; }
 .admin-table-card { position: relative; z-index: 1; overflow: hidden; border: 1px solid var(--border); border-radius: 26px; background: rgba(255,255,255,.9); box-shadow: var(--shadow-soft); }
-.product-admin-row, .category-admin-row, .admin-order-row { display: grid; gap: 16px; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.product-admin-row, .category-admin-row, .admin-order-row, .admin-user-row { display: grid; gap: 16px; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .product-admin-row { grid-template-columns: 1.6fr .8fr .7fr .8fr auto; }
 .category-admin-row { grid-template-columns: 1.6fr .7fr .7fr auto; }
 .admin-order-row { grid-template-columns: 1.2fr 1.2fr .7fr .8fr .7fr auto; }
+.admin-user-row { grid-template-columns: 1.6fr .9fr .7fr .8fr auto; }
+.admin-filter-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.admin-filter-row input[type="search"] { flex: 1; min-width: 220px; border: 1px solid var(--border); border-radius: 14px; min-height: 46px; padding: 0 14px; color: var(--navy); background: #fff; outline: none; }
+.admin-filter-row select { min-width: 150px; border: 1px solid var(--border); border-radius: 14px; min-height: 46px; padding: 0 14px; color: var(--navy); background: #fff; outline: none; }
+@media (max-width: 680px) { .admin-filter-row { flex-direction: column; } .admin-filter-row input, .admin-filter-row select, .admin-filter-row button { width: 100%; } }
 .product-admin-row:last-child, .category-admin-row:last-child, .admin-order-row:last-child { border-bottom: 0; }
 .admin-table-head { background: linear-gradient(135deg, rgba(15,103,245,.08), rgba(109,40,233,.08)); color: var(--muted); font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .08em; }
 .admin-product-cell { display: flex; align-items: center; gap: 13px; }
 .admin-product-image { width: 62px; height: 62px; display: grid; place-items: center; border-radius: 18px; background: var(--surface-2); overflow: hidden; font-size: 28px; }
 .admin-product-image img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
-.admin-product-cell strong, .category-admin-row strong, .admin-order-row strong { color: var(--navy); }
-.admin-product-cell p, .category-admin-row p, .admin-order-row p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-.admin-order-row select, .admin-form-card select, .admin-form-card textarea { width: 100%; border: 1px solid var(--border); border-radius: 14px; min-height: 46px; padding: 0 14px; color: var(--navy); background: #fff; outline: none; }
+.admin-product-cell strong, .category-admin-row strong, .admin-order-row strong, .admin-user-row strong { color: var(--navy); }
+.admin-product-cell p, .category-admin-row p, .admin-order-row p, .admin-user-row p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.admin-order-row select, .admin-user-row select, .admin-form-card select, .admin-form-card textarea { width: 100%; border: 1px solid var(--border); border-radius: 14px; min-height: 46px; padding: 0 14px; color: var(--navy); background: #fff; outline: none; }
 .admin-form-card textarea { padding: 14px; resize: vertical; }
 .admin-form-card { position: relative; z-index: 1; padding: 24px; margin-bottom: 22px; border: 1px solid var(--border); border-radius: 28px; background: rgba(255,255,255,.9); box-shadow: var(--shadow-soft); }
 .admin-form-card input, .admin-form-card select, .admin-form-card textarea { font-weight: 700; }
@@ -488,7 +493,7 @@ del { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
 .empty-review { padding: 22px; color: var(--muted); font-weight: 900; }
 
 @media (max-width: 1100px) {
-  .product-admin-row, .category-admin-row, .admin-order-row, .reviews-grid { grid-template-columns: 1fr; }
+  .product-admin-row, .category-admin-row, .admin-order-row, .admin-user-row, .reviews-grid { grid-template-columns: 1fr; }
   .admin-table-head { display: none; }
 }
 

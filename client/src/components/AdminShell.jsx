@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { BarChart3, Boxes, FolderTree, PackagePlus, ShoppingCart } from 'lucide-react'
+import { BarChart3, Boxes, FolderTree, PackagePlus, ShoppingCart, Users } from 'lucide-react'
 
 const adminLinks = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -7,6 +7,7 @@ const adminLinks = [
   { to: '/admin/products', label: 'Products', icon: Boxes },
   { to: '/admin/products/new', label: 'Add Product', icon: PackagePlus },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
+  { to: '/admin/users', label: 'Users', icon: Users },
 ]
 
 export default function AdminShell({ children }) {

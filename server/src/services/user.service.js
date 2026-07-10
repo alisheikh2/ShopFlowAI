@@ -4,8 +4,12 @@ const User = require("../models/user.model");
 const ApiError = require("../utils/apiError");
 const generateSecureToken = require("../utils/generateSecureToken");
 const { getTokenStorageCandidates } = require("../utils/tokenHash");
+const { escapeRegex, getSafeLimit } = require("../utils/queryHelpers");
 
 const EMAIL_VERIFICATION_EXPIRY_MS = 1000 * 60 * 60 * 24; // 24 hours
+
+const ADMIN_SAFE_FIELDS =
+  "-password -refreshToken -emailVerificationToken -passwordResetToken -__v";
 
 const registerUser = async ({ name, email, password }) => {
   const existingUser = await User.findOne({ email });
@@ -51,6 +55,10 @@ const loginUser = async ({ email, password }) => {
 
   if (!user.isEmailVerified) {
     throw new ApiError(403, "Please verify your email before logging in");
+  }
+
+  if (user.isBanned) {
+    throw new ApiError(403, "Your account has been suspended. Contact support for help.");
   }
 
   const loggedInUser = await User.findById(user._id).select(
@@ -224,6 +232,93 @@ const resendVerification = async (email) => {
   };
 };
 
+// ─── Admin: user management ───────────────────────────────────────────────
+
+const getAllUsersAdmin = async (query) => {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = getSafeLimit(query.limit);
+  const skip = (page - 1) * limit;
+
+  const filter = {};
+
+  if (query.search) {
+    const regex = { $regex: escapeRegex(query.search), $options: "i" };
+    filter.$or = [{ name: regex }, { email: regex }];
+  }
+
+  if (query.role) {
+    filter.role = query.role;
+  }
+
+  if (query.banned !== undefined) {
+    filter.isBanned = query.banned === "true";
+  }
+
+  const totalUsers = await User.countDocuments(filter);
+  const totalPages = Math.max(1, Math.ceil(totalUsers / limit));
+
+  const users = await User.find(filter)
+    .select(ADMIN_SAFE_FIELDS)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    users,
+    pagination: {
+      totalUsers,
+      currentPage: page,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+const updateUserRoleAdmin = async (targetUserId, role, requestingUserId) => {
+  if (targetUserId === String(requestingUserId)) {
+    throw new ApiError(400, "You cannot change your own role");
+  }
+
+  const user = await User.findById(targetUserId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.role = role;
+  await user.save({ validateBeforeSave: false });
+
+  return User.findById(user._id).select(ADMIN_SAFE_FIELDS);
+};
+
+const updateUserBanStatusAdmin = async (
+  targetUserId,
+  isBanned,
+  requestingUserId,
+) => {
+  if (targetUserId === String(requestingUserId)) {
+    throw new ApiError(400, "You cannot ban or unban your own account");
+  }
+
+  const user = await User.findById(targetUserId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.isBanned = isBanned;
+
+  // Force logout everywhere by clearing active refresh-token sessions on ban.
+  if (isBanned) {
+    user.refreshToken = [];
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  return User.findById(user._id).select(ADMIN_SAFE_FIELDS);
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -233,4 +328,7 @@ module.exports = {
   resetPassword,
   googleLogin,
   resendVerification,
+  getAllUsersAdmin,
+  updateUserRoleAdmin,
+  updateUserBanStatusAdmin,
 };
