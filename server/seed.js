@@ -743,13 +743,107 @@ const products = [
   },
 ];
 
+
+
+
+const productImagePools = {
+  smartphones: [
+    "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=900&q=85",
+  ],
+  laptops: [
+    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=900&q=85",
+  ],
+  tablets: [
+    "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1561154464-82e9adf32764?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1589739900243-4b52cd9b104e?auto=format&fit=crop&w=900&q=85",
+  ],
+  smartwatches: [
+    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=900&q=85",
+  ],
+  headphones: [
+    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=900&q=85",
+  ],
+  gaming: [
+    "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?auto=format&fit=crop&w=900&q=85",
+  ],
+  cameras: [
+    "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1500634245200-e5245c7574ef?auto=format&fit=crop&w=900&q=85",
+  ],
+  accessories: [
+    "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=900&q=85",
+    "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=900&q=85",
+  ],
+};
+
+const getProductCategorySlug = (product) => {
+  const match = Object.entries(categoryMap).find(
+    ([, categoryId]) => categoryId.toString() === product.category.toString(),
+  );
+
+  return match?.[0] || "accessories";
+};
+
+const categoryDescriptionCopy = {
+  smartphones:
+    "Designed for customers who expect speed, premium build quality, excellent cameras, and reliable all-day performance. It is ideal for social media, gaming, productivity, video calls, and everyday multitasking.",
+  laptops:
+    "Built for professionals, creators, students, and power users who need smooth multitasking, dependable performance, premium visuals, and a comfortable workflow for long sessions.",
+  tablets:
+    "A versatile device for entertainment, note-taking, browsing, streaming, and productivity. Its portable design makes it useful at home, in class, at work, or while travelling.",
+  smartwatches:
+    "A smart companion for health tracking, notifications, workouts, and daily productivity. It combines a comfortable wearable design with useful connected features for modern routines.",
+  headphones:
+    "Made for immersive listening, clear calls, and comfortable daily use. It is suitable for music, meetings, travel, gaming, and focused work sessions.",
+  gaming:
+    "Created for players who want responsive controls, reliable performance, and an enjoyable gaming experience. It is suitable for competitive play, casual entertainment, and long sessions.",
+  cameras:
+    "A strong choice for creators, travelers, and professionals who need sharp imaging, dependable handling, and flexible shooting for photos, videos, and content production.",
+  accessories:
+    "A practical upgrade for daily tech use, designed to improve convenience, charging, connectivity, portability, and productivity without adding unnecessary complexity.",
+};
+
+const createProductDescription = (product) => {
+  const categorySlug = getProductCategorySlug(product);
+  const categoryCopy = categoryDescriptionCopy[categorySlug] || categoryDescriptionCopy.accessories;
+  const pricePosition = product.discountPrice > 0 ? "with a competitive discounted price" : "with strong value for its category";
+
+  return `${product.name} by ${product.brand} is a carefully selected ${categorySlug.replace(/-/g, " ")} product ${pricePosition}. ${categoryCopy} The product is listed with reliable stock availability, brand-backed quality, and a clean ShopFlowAI buying experience that includes secure checkout, order updates, and professional invoice support. Whether you are upgrading your personal setup or buying for work, this item is positioned to deliver dependable performance, modern styling, and practical everyday benefits.`;
+};
+
+const createProductImage = (product, index) => {
+  const categorySlug = getProductCategorySlug(product);
+  const pool = productImagePools[categorySlug] || productImagePools.accessories;
+  const slug = product.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  return {
+    public_id: `shopflow/seed/${slug}-${index + 1}`,
+    url: pool[index % pool.length],
+  };
+};
+
 await Product.insertMany(
-  products.map((product) => ({
+  products.map((product, index) => ({
     ...product,
+    description: createProductDescription(product),
     slug: product.name
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-"),
+    images: [createProductImage(product, index)],
   }))
 );
 

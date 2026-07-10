@@ -35,8 +35,26 @@ const pickAllowedFields = (source) => {
   return picked;
 };
 
+const normalizeProductPayload = (productData) => {
+  const normalized = { ...productData };
+
+  for (const field of ["price", "discountPrice", "stock"]) {
+    if (normalized[field] !== undefined && normalized[field] !== "") {
+      normalized[field] = Number(normalized[field]);
+    }
+  }
+
+  for (const field of ["isFeatured", "isPublished"]) {
+    if (typeof normalized[field] === "string") {
+      normalized[field] = normalized[field] === "true";
+    }
+  }
+
+  return normalized;
+};
+
 const createProduct = async (productData, userId) => {
-  productData = pickAllowedFields(productData);
+  productData = normalizeProductPayload(pickAllowedFields(productData));
 
   // Business rule: discount price must be strictly less than the regular price
   if (
@@ -218,7 +236,7 @@ const getProductBySlug = async (slug) => {
 };
 
 const updateProduct = async (slug, updateData) => {
-  updateData = pickAllowedFields(updateData);
+  updateData = normalizeProductPayload(pickAllowedFields(updateData));
   const product = await Product.findOne({ slug });
 
   if (!product) {
