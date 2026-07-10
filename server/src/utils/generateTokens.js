@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const ApiError = require("./apiError");
+const { getTokenStorageCandidates, hashToken } = require("./tokenHash");
 
 const MAX_SESSIONS = 5; // cap concurrent devices per user
 
@@ -10,12 +11,14 @@ const generateAccessAndRefreshTokens = async (userId, oldRefreshToken = null) =>
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
-    // If rotating (called from /refresh-token), drop the old token first
+    // Store only token hashes. During rollout, also remove a legacy raw token
+    // so existing sessions migrate seamlessly on their next rotation.
     if (oldRefreshToken) {
-      user.refreshToken = user.refreshToken.filter((t) => t !== oldRefreshToken);
+      const oldCandidates = new Set(getTokenStorageCandidates(oldRefreshToken));
+      user.refreshToken = user.refreshToken.filter((token) => !oldCandidates.has(token));
     }
 
-    user.refreshToken.push(refreshToken);
+    user.refreshToken.push(hashToken(refreshToken));
 
     // Cap to most recent N sessions — drop oldest if over limit
     if (user.refreshToken.length > MAX_SESSIONS) {

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const ROLES = require("../constants/roles");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
 if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
@@ -123,6 +124,9 @@ userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       id: this._id,
+      // Prevent two sessions created in the same second from producing the
+      // same deterministic JWT and make every rotation cryptographically unique.
+      jti: crypto.randomUUID(),
     },
     process.env.REFRESH_TOKEN_SECRET,
     {

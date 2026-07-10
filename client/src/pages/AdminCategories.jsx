@@ -20,7 +20,7 @@ export default function AdminCategories() {
     try {
       setIsLoading(true)
       setError('')
-      const response = await api.get('/categories', { query: { limit: 100 } })
+      const response = await api.get('/categories/admin/all', { query: { limit: 100 } })
       setCategories(response.data?.categories || [])
     } catch (err) {
       setError(err.message)

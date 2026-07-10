@@ -26,6 +26,20 @@ const getAll = asyncHandler(async (req, res) => {
   );
 });
 
+const getAllAdmin = asyncHandler(async (req, res) => {
+  const result = await getAllCategories(req.query, { includeInactive: true });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Admin categories fetched successfully", result));
+});
+
+const getOneAdmin = asyncHandler(async (req, res) => {
+  const category = await getCategoryBySlug(req.params.slug, { includeInactive: true });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Admin category fetched successfully", { category }));
+});
+
 // GET ONE
 const getOne = asyncHandler(async (req, res) => {
   const category = await getCategoryBySlug(req.params.slug);
@@ -56,7 +70,9 @@ const remove = asyncHandler(async (req, res) => {
 module.exports = {
   create,
   getAll,
+  getAllAdmin,
   getOne,
+  getOneAdmin,
   update,
   remove,
 };

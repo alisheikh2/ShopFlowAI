@@ -8,6 +8,7 @@ const outboxEventSchema = new mongoose.Schema(
       enum: [
         "stripe.refund.requested",
         "stripe.payment_intent.cancel.requested",
+        "cloudinary.images.delete",
       ],
       index: true,
     },

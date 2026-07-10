@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const slugify = require("slugify");
 const Product = require("../models/product.model");
 const Category = require("../models/category.model");
@@ -10,6 +11,7 @@ const {
   deleteFromCloudinary,
 } = require("../utils/cloudinaryUpload");
 const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
+const { enqueueCloudinaryImageDeletion } = require("./outbox.service");
 
 const ALLOWED_PRODUCT_FIELDS = [
   "name",
@@ -51,6 +53,36 @@ const normalizeProductPayload = (productData) => {
   }
 
   return normalized;
+};
+
+const deleteImagesBestEffort = async (images = []) => {
+  await Promise.allSettled(
+    images
+      .map((image) => image?.public_id)
+      .filter(Boolean)
+      .map((publicId) => deleteFromCloudinary(publicId)),
+  );
+};
+
+const uploadProductImages = async (images = []) => {
+  if (images.length === 0) return [];
+
+  const results = await Promise.allSettled(
+    images.map((image) => uploadToCloudinary(image, "shopflow/products")),
+  );
+  const uploadedImages = results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => ({
+      public_id: result.value.public_id,
+      url: result.value.secure_url,
+    }));
+  const failed = results.find((result) => result.status === "rejected");
+
+  if (failed) {
+    await deleteImagesBestEffort(uploadedImages);
+    throw failed.reason;
+  }
+  return uploadedImages;
 };
 
 const createProduct = async (productData, userId) => {
@@ -96,29 +128,21 @@ const createProduct = async (productData, userId) => {
     throw new ApiError(409, "A product with the same name already exists");
   }
 
-  // Upload images
-  let uploadedImages = [];
+  const uploadedImages = await uploadProductImages(productData.images || []);
 
-  if (productData.images?.length) {
-    const uploads = await Promise.all(
-      productData.images.map((image) =>
-        uploadToCloudinary(image, "shopflow/products"),
-      ),
-    );
-
-    uploadedImages = uploads.map((uploaded) => ({
-      public_id: uploaded.public_id,
-      url: uploaded.secure_url,
-    }));
+  let product;
+  try {
+    product = await Product.create({
+      ...productData,
+      slug,
+      images: uploadedImages,
+      createdBy: userId,
+    });
+  } catch (error) {
+    // DB failure must not leave newly uploaded, unreferenced assets behind.
+    await deleteImagesBestEffort(uploadedImages);
+    throw error;
   }
-
-  // Create product
-  const product = await Product.create({
-    ...productData,
-    slug,
-    images: uploadedImages,
-    createdBy: userId,
-  });
 
   const populatedProduct = await product.populate([
     {
@@ -147,10 +171,15 @@ const getAllProducts = async (query) => {
 
   // Search
   if (query.search) {
-    filter.name = {
+    const searchPattern = {
       $regex: escapeRegex(query.search),
       $options: "i",
     };
+    filter.$or = [
+      { name: searchPattern },
+      { sku: searchPattern },
+      { brand: searchPattern },
+    ];
   }
 
   // Brand Filter
@@ -293,43 +322,49 @@ const updateProduct = async (slug, updateData) => {
     }
   }
 
+  const oldImages = product.images || [];
+  let uploadedImages = [];
   if (updateData.images?.length) {
-    const oldImages = product.images; // keep reference before overwriting
-
-    // Upload new images FIRST — if this fails, old images stay intact
-    const uploads = await Promise.all(
-      updateData.images.map((image) =>
-        uploadToCloudinary(image, "shopflow/products"),
-      ),
-    );
-
-    updateData.images = uploads.map((uploaded) => ({
-      public_id: uploaded.public_id,
-      url: uploaded.secure_url,
-    }));
-
-    if (oldImages?.length) {
-      try {
-        await Promise.all(
-          oldImages.map((image) => deleteFromCloudinary(image.public_id)),
-        );
-      } catch (err) {
-        console.error(
-          "Failed to delete old product images from Cloudinary:",
-          err.message,
-        );
-      }
-    }
+    uploadedImages = await uploadProductImages(updateData.images);
+    updateData.images = uploadedImages;
   }
 
-  const updatedProduct = await Product.findByIdAndUpdate(
-    product._id,
-    updateData,
-    {
-      new: true,
-      runValidators: true,
-    },
-  )
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const result = await Product.findOneAndUpdate(
+        { _id: product._id, updatedAt: product.updatedAt },
+        updateData,
+        {
+          new: true,
+          runValidators: true,
+          session,
+        },
+      );
+      if (!result) {
+        throw new ApiError(
+          409,
+          "Product changed while it was being edited. Reload and try again.",
+        );
+      }
+
+      if (uploadedImages.length > 0 && oldImages.length > 0) {
+        await enqueueCloudinaryImageDeletion(
+          oldImages.map((image) => image.public_id),
+          product._id,
+          session,
+        );
+      }
+    });
+  } catch (error) {
+    // The DB still references old images if the transaction fails.
+    await deleteImagesBestEffort(uploadedImages);
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+
+  const updatedProduct = await Product.findById(product._id)
     .populate("createdBy", "name")
     .populate("category", "name slug");
 
@@ -345,17 +380,24 @@ const deleteProduct = async (slug) => {
     throw new ApiError(404, "Product not found");
   }
 
-  if (product.images?.length) {
-    await Promise.all(
-      product.images.map((image) => deleteFromCloudinary(image.public_id)),
-    );
-  }
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const currentProduct = await Product.findById(product._id).session(session);
+      if (!currentProduct) throw new ApiError(404, "Product not found");
 
-  await Promise.all([
-    Product.findByIdAndDelete(product._id),
-    Wishlist.deleteMany({ product: product._id }),
-    Review.deleteMany({ product: product._id }),
-  ]);
+      await Product.findByIdAndDelete(currentProduct._id, { session });
+      await Wishlist.deleteMany({ product: currentProduct._id }, { session });
+      await Review.deleteMany({ product: currentProduct._id }, { session });
+      await enqueueCloudinaryImageDeletion(
+        (currentProduct.images || []).map((image) => image.public_id),
+        currentProduct._id,
+        session,
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   await invalidateCacheGroups(["products", "analytics"]);
 };
@@ -369,10 +411,15 @@ const getAllProductsAdmin = async (query) => {
 
   // Search
   if (query.search) {
-    filter.name = {
+    const searchPattern = {
       $regex: escapeRegex(query.search),
       $options: "i",
     };
+    filter.$or = [
+      { name: searchPattern },
+      { sku: searchPattern },
+      { brand: searchPattern },
+    ];
   }
 
   // Brand Filter

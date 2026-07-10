@@ -3,6 +3,7 @@ const Product = require("../models/product.model");
 const Order = require("../models/order.model");
 
 const ApiError = require("../utils/apiError");
+const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
 
 const updateProductRating = async (productId) => {
   const reviews = await Review.find({ product: productId });
@@ -18,6 +19,7 @@ const updateProductRating = async (productId) => {
     ratings: Number(ratings.toFixed(1)),
     numReviews,
   });
+  await invalidateCacheGroups(["products"]);
 };
 
 const createReview = async (userId, data) => {

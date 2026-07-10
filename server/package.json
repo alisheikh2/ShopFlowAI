@@ -10,9 +10,10 @@
     "start": "node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "seed": "node seed.js",
-    "test": "node --test",
+    "test": "node --test --test-concurrency=1",
     "worker:once": "node src/scripts/runCommerceWorker.js",
-    "migrate:phase1": "node src/scripts/migratePhase1Orders.js"
+    "migrate:phase1": "node src/scripts/migratePhase1Orders.js",
+    "migrate:phase2": "node src/scripts/migratePhase2Security.js"
   },
   "keywords": [],
   "author": "",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
+    "mongodb-memory-server": "^10.4.3",
     "nodemon": "^3.1.14"
   },
   "overrides": {

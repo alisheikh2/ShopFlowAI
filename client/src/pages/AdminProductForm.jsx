@@ -36,7 +36,7 @@ export default function AdminProductForm() {
   useEffect(() => {
     const load = async () => {
       try {
-        const categoryResponse = await api.get('/categories', { query: { limit: 100 } })
+        const categoryResponse = await api.get('/categories/admin/all', { query: { limit: 100 } })
         setCategories(categoryResponse.data?.categories || [])
 
         if (isEdit) {

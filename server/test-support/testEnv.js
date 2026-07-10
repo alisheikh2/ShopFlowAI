@@ -1,0 +1,9 @@
+process.env.NODE_ENV = "test";
+process.env.ACCESS_TOKEN_SECRET ||= "test-access-secret-at-least-32-characters";
+process.env.REFRESH_TOKEN_SECRET ||= "test-refresh-secret-at-least-32-characters";
+process.env.ACCESS_TOKEN_EXPIRY ||= "15m";
+process.env.REFRESH_TOKEN_EXPIRY ||= "7d";
+process.env.STRIPE_SECRET_KEY ||= "sk_test_placeholder";
+process.env.CACHE_ENABLED = "false";
+process.env.PAYMENT_RESERVATION_MINUTES ||= "30";
+process.env.DISABLE_COMMERCE_WORKER = "true";

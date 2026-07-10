@@ -5,7 +5,7 @@ const ApiError = require("../utils/apiError");
 const addToWishlist = async (userId, productId) => {
   const product = await Product.findById(productId);
 
-  if (!product) {
+  if (!product || !product.isPublished) {
     throw new ApiError(404, "Product not found");
   }
 
@@ -40,17 +40,27 @@ const removeFromWishlist = async (userId, productId) => {
 const getUserWishlist = async (userId) => {
   const items = await Wishlist.find({ user: userId }).populate("product");
 
-  // Filter out entries whose product was deleted (populate returns null)
-  return items.filter((item) => item.product !== null);
+  const validItems = items.filter(
+    (item) => item.product !== null && item.product.isPublished,
+  );
+  const invalidIds = items
+    .filter((item) => item.product === null || !item.product.isPublished)
+    .map((item) => item._id);
+
+  if (invalidIds.length > 0) {
+    await Wishlist.deleteMany({ _id: { $in: invalidIds } });
+  }
+
+  return validItems;
 };
 
 const checkWishlistStatus = async (userId, productId) => {
-  const wishlistItem = await Wishlist.findOne({
-    user: userId,
-    product: productId,
-  });
+  const [product, wishlistItem] = await Promise.all([
+    Product.findById(productId).select("isPublished"),
+    Wishlist.findOne({ user: userId, product: productId }),
+  ]);
 
-  return Boolean(wishlistItem);
+  return Boolean(product?.isPublished && wishlistItem);
 };
 
 module.exports = {

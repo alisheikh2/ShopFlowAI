@@ -1,7 +1,9 @@
+const crypto = require("crypto");
 const stripe = require("../config/stripe");
 const Order = require("../models/order.model");
 const OutboxEvent = require("../models/outboxEvent.model");
 const { invalidateCacheGroups } = require("../utils/cacheInvalidation");
+const { deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 
 const MAX_ATTEMPTS = 8;
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -53,6 +55,34 @@ const enqueuePaymentIntentCancellation = async (order, session) => {
     { upsert: true, session },
   );
 
+  return idempotencyKey;
+};
+
+const enqueueCloudinaryImageDeletion = async (publicIds, aggregateId, session) => {
+  const normalizedIds = [...new Set((publicIds || []).filter(Boolean))].sort();
+  if (normalizedIds.length === 0) return null;
+
+  const digest = crypto
+    .createHash("sha256")
+    .update(normalizedIds.join("|"))
+    .digest("hex")
+    .slice(0, 24);
+  const idempotencyKey = `cloudinary-delete:${aggregateId}:${digest}`;
+
+  await OutboxEvent.updateOne(
+    { idempotencyKey },
+    {
+      $setOnInsert: {
+        type: "cloudinary.images.delete",
+        aggregateId,
+        idempotencyKey,
+        payload: { publicIds: normalizedIds },
+        status: "pending",
+        availableAt: new Date(),
+      },
+    },
+    { upsert: true, session },
+  );
   return idempotencyKey;
 };
 
@@ -145,12 +175,21 @@ const processPaymentIntentCancellation = async (event) => {
   }
 };
 
+const processCloudinaryDeletion = async (event) => {
+  const publicIds = event.payload?.publicIds || [];
+  await Promise.all(publicIds.map((publicId) => deleteFromCloudinary(publicId)));
+  return { deleted: publicIds.length };
+};
+
 const processOutboxEvent = async (event) => {
   if (event.type === "stripe.refund.requested") {
     return await processRefundEvent(event);
   }
   if (event.type === "stripe.payment_intent.cancel.requested") {
     return await processPaymentIntentCancellation(event);
+  }
+  if (event.type === "cloudinary.images.delete") {
+    return await processCloudinaryDeletion(event);
   }
   throw new Error(`Unsupported outbox event type: ${event.type}`);
 };
@@ -205,6 +244,7 @@ const processPendingOutboxEvents = async ({ limit = 10 } = {}) => {
 };
 
 module.exports = {
+  enqueueCloudinaryImageDeletion,
   enqueuePaymentIntentCancellation,
   enqueueRefund,
   processPendingOutboxEvents,

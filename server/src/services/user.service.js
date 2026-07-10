@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const User = require("../models/user.model");
 const ApiError = require("../utils/apiError");
 const generateSecureToken = require("../utils/generateSecureToken");
+const { getTokenStorageCandidates } = require("../utils/tokenHash");
 
 const EMAIL_VERIFICATION_EXPIRY_MS = 1000 * 60 * 60 * 24; // 24 hours
 
@@ -63,7 +64,7 @@ const logoutUser = async (userId, refreshToken) => {
   await User.findByIdAndUpdate(
     userId,
     {
-      $pull: { refreshToken: refreshToken },
+      $pull: { refreshToken: { $in: getTokenStorageCandidates(refreshToken) } },
     },
     {
       new: true,

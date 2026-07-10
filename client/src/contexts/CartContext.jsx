@@ -6,14 +6,15 @@ import { useAuth } from './AuthContext'
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
-  const { isAuthenticated } = useAuth()
-  const [cart, setCart] = useState({ items: [], totalItems: 0, subtotal: 0 })
+  const { isAuthenticated, isCustomer } = useAuth()
+  const [cart, setCart] = useState({ items: [], totalItems: 0, subtotal: 0, pricingUpdated: false })
   const [isCartLoading, setIsCartLoading] = useState(false)
   const [cartError, setCartError] = useState('')
 
   const fetchCart = useCallback(async () => {
-    if (!isAuthenticated) {
-      setCart({ items: [], totalItems: 0, subtotal: 0 })
+    if (!isAuthenticated || !isCustomer) {
+      setCart({ items: [], totalItems: 0, subtotal: 0, pricingUpdated: false })
+      setCartError('')
       return null
     }
 
@@ -21,7 +22,7 @@ export function CartProvider({ children }) {
       setIsCartLoading(true)
       setCartError('')
       const response = await api.get('/cart')
-      const nextCart = response.data?.cart || { items: [], totalItems: 0, subtotal: 0 }
+      const nextCart = response.data?.cart || { items: [], totalItems: 0, subtotal: 0, pricingUpdated: false }
       setCart(nextCart)
       return nextCart
     } catch (error) {
@@ -30,7 +31,7 @@ export function CartProvider({ children }) {
     } finally {
       setIsCartLoading(false)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, isCustomer])
 
   useEffect(() => {
     fetchCart()
@@ -39,6 +40,9 @@ export function CartProvider({ children }) {
   const addToCart = async (productId, quantity = 1) => {
     if (!isAuthenticated) {
       throw new Error('Please login to add products to your cart.')
+    }
+    if (!isCustomer) {
+      throw new Error('Only customer accounts can use the shopping cart.')
     }
 
     const response = await api.post('/cart', { productId, quantity })

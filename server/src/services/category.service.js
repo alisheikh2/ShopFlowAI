@@ -33,13 +33,13 @@ const createCategory = async (categoryData, userId) => {
 
 // GET ALL
 
-const getAllCategories = async (query) => {
+const getAllCategories = async (query, { includeInactive = false } = {}) => {
   const page = Number(query.page) || 1;
   const limit = getSafeLimit(query.limit);
 
   const skip = (page - 1) * limit;
 
-  const filter = {};
+  const filter = includeInactive ? {} : { isActive: true };
 
   // Search
   if (query.search) {
@@ -51,7 +51,7 @@ const getAllCategories = async (query) => {
 
   // Active Filter
 
-  if (query.active !== undefined) {
+  if (includeInactive && query.active !== undefined) {
     filter.isActive = query.active === "true";
   }
 
@@ -101,9 +101,10 @@ const getAllCategories = async (query) => {
 
 // GET SINGLE
 
-const getCategoryBySlug = async (slug) => {
+const getCategoryBySlug = async (slug, { includeInactive = false } = {}) => {
   const category = await Category.findOne({
     slug,
+    ...(includeInactive ? {} : { isActive: true }),
   }).populate("createdBy", "name");
 
   if (!category) {

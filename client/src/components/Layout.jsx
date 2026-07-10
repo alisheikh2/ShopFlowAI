@@ -26,11 +26,12 @@ const getNavItems = (role) => [
 ]
 
 function Header() {
-  const { isAuthenticated, logout, user } = useAuth()
+  const { isAuthenticated, isCustomer, logout, user } = useAuth()
   const navigate = useNavigate()
   const { cart } = useCart()
   const { showToast } = useToast()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const confirmLogout = async () => {
@@ -57,14 +58,18 @@ function Header() {
       </nav>
 
       <div className="header-actions">
-        <Link className="icon-btn useful-action" to="/wishlist" aria-label="Wishlist" title="Wishlist">
-          <Heart size={19} />
-        </Link>
-        <Link className="cart-action" to="/cart" aria-label="Cart">
-          <ShoppingBag size={19} />
-          <span>Cart</span>
-          {cart.totalItems > 0 && <strong>{cart.totalItems}</strong>}
-        </Link>
+        {user?.role !== 'admin' && (
+          <>
+            <Link className="icon-btn useful-action" to="/wishlist" aria-label="Wishlist" title="Wishlist">
+              <Heart size={19} />
+            </Link>
+            <Link className="cart-action" to="/cart" aria-label="Cart">
+              <ShoppingBag size={19} />
+              <span>Cart</span>
+              {cart.totalItems > 0 && <strong>{cart.totalItems}</strong>}
+            </Link>
+          </>
+        )}
         {isAuthenticated ? (
           <div className="profile-menu">
             <button className="profile-trigger" onClick={() => setIsProfileOpen((current) => !current)} aria-label="Profile menu">
@@ -77,8 +82,8 @@ function Header() {
             </button>
             {isProfileOpen && (
               <div className="profile-dropdown">
-                <Link to="/account/orders" onClick={() => setIsProfileOpen(false)}>My Orders</Link>
-                <Link to="/wishlist" onClick={() => setIsProfileOpen(false)}>Wishlist</Link>
+                {isCustomer && <Link to="/account/orders" onClick={() => setIsProfileOpen(false)}>My Orders</Link>}
+                {isCustomer && <Link to="/wishlist" onClick={() => setIsProfileOpen(false)}>Wishlist</Link>}
                 {user?.role === 'admin' && <Link to="/admin/dashboard" onClick={() => setIsProfileOpen(false)}>Admin Dashboard</Link>}
                 <button onClick={() => setShowLogoutConfirm(true)}><LogOut size={16} /> Logout</button>
               </div>
@@ -106,10 +111,30 @@ function Header() {
             </div>
           </Link>
         )}
-        <button className="icon-btn mobile-menu" aria-label="Menu">
+        <button
+          className="icon-btn mobile-menu"
+          aria-label="Menu"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-header-menu"
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
+        >
           <Menu size={20} />
         </button>
       </div>
+
+      {isMobileMenuOpen && (
+        <nav id="mobile-header-menu" className="mobile-header-menu" aria-label="Responsive navigation">
+          {getNavItems(user?.role).map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setIsMobileMenuOpen(false)}>
+              {item.label}
+            </NavLink>
+          ))}
+          {user?.role === 'admin' && (
+            <NavLink to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Admin Dashboard</NavLink>
+          )}
+          {!isAuthenticated && <NavLink to="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</NavLink>}
+        </nav>
+      )}
     </header>
   )
 }
@@ -158,16 +183,23 @@ function Footer() {
 function MobileBottomNav() {
   const { cart } = useCart()
   const { user } = useAuth()
+  if (user?.role === 'admin') {
+    return (
+      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+        <NavLink to="/" end>Home</NavLink>
+        <NavLink to="/products">Products</NavLink>
+        <NavLink to="/categories">Categories</NavLink>
+        <NavLink to="/admin/dashboard">Admin</NavLink>
+      </nav>
+    )
+  }
+
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       <NavLink to="/" end>Home</NavLink>
       <NavLink to="/products">Shop</NavLink>
       <NavLink to="/cart">Cart {cart.totalItems > 0 ? `(${cart.totalItems})` : ''}</NavLink>
-      {user?.role === 'admin' ? (
-        <NavLink to="/admin/dashboard">Admin</NavLink>
-      ) : (
-        <NavLink to="/account/orders">Orders</NavLink>
-      )}
+      <NavLink to="/account/orders">Orders</NavLink>
     </nav>
   )
 }

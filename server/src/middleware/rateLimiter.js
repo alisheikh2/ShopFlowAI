@@ -13,6 +13,20 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Session refresh is a normal background operation (including page reloads),
+// so it must not share the strict credential-attempt budget.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many session refresh requests. Please try again shortly.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Slightly looser limiter for forgot-password (people fat-finger emails)
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -71,6 +85,7 @@ module.exports = {
   aiLimiter,
   authLimiter,
   forgotPasswordLimiter,
+  refreshLimiter,
   orderLimiter,
   paymentLimiter,
 };

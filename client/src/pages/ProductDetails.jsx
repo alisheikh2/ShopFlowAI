@@ -14,7 +14,7 @@ import { normalizeProduct } from '../utils/product'
 export default function ProductDetails() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAdmin, isAuthenticated } = useAuth()
   const { addToCart } = useCart()
   const { isWishlisted, toggleWishlist } = useWishlist()
   const [product, setProduct] = useState(null)
@@ -53,6 +53,10 @@ export default function ProductDetails() {
   }, [slug])
 
   const handleAddToCart = async () => {
+    if (!product || Number(product.stock) <= 0) {
+      setMessage('This product is currently out of stock.')
+      return
+    }
     try {
       setMessage('')
       await addToCart(product._id, quantity)
@@ -138,8 +142,8 @@ export default function ProductDetails() {
             <Star size={18} fill="currentColor" />
             <strong>{item.ratings || 0}</strong>
             <span>{item.numReviews || 0} reviews</span>
-            <StatusBadge tone={item.stock <= 5 ? 'orange' : 'green'}>
-              {item.stock <= 5 ? 'Low Stock' : 'In Stock'}
+            <StatusBadge tone={Number(item.stock) <= 0 ? 'orange' : item.stock <= 5 ? 'orange' : 'green'}>
+              {Number(item.stock) <= 0 ? 'Out of Stock' : item.stock <= 5 ? 'Low Stock' : 'In Stock'}
             </StatusBadge>
           </div>
           <p className="detail-description">{item.description}</p>
@@ -155,19 +159,24 @@ export default function ProductDetails() {
             <span>Quantity</span>
             <input
               min="1"
-              max={item.stock || 99}
+              max={Math.max(Number(item.stock) || 0, 1)}
               type="number"
               value={quantity}
-              onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))}
+              disabled={Number(item.stock) <= 0}
+              onChange={(event) => setQuantity(Math.min(Math.max(1, Number(event.target.value) || 1), Number(item.stock) || 1))}
             />
           </div>
-          <div className="detail-actions">
-            <button className="btn primary" onClick={handleAddToCart}><ShoppingBag size={18} /> Add to Cart</button>
-            <button className="btn ghost" onClick={handleWishlist}>
-              <Heart size={18} fill={isWishlisted(item.id) ? 'currentColor' : 'none'} />
-              {isWishlisted(item.id) ? 'Saved' : 'Wishlist'}
-            </button>
-          </div>
+          {!isAdmin && (
+            <div className="detail-actions">
+              <button className="btn primary" onClick={handleAddToCart} disabled={Number(item.stock) <= 0}>
+                <ShoppingBag size={18} /> {Number(item.stock) <= 0 ? 'Out of Stock' : 'Add to Cart'}
+              </button>
+              <button className="btn ghost" onClick={handleWishlist}>
+                <Heart size={18} fill={isWishlisted(item.id) ? 'currentColor' : 'none'} />
+                {isWishlisted(item.id) ? 'Saved' : 'Wishlist'}
+              </button>
+            </div>
+          )}
           {message && <p className="inline-message large-message">{message}</p>}
         </div>
       </div>
@@ -181,15 +190,17 @@ export default function ProductDetails() {
           </div>
         </div>
         <div className="reviews-grid">
-          <form className="review-form glass-card" onSubmit={submitReview}>
-            <h3>Write a review</h3>
-            <select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: event.target.value }))}>
-              {[5, 4, 3, 2, 1].map((rating) => <option value={rating} key={rating}>{rating} stars</option>)}
-            </select>
-            <textarea placeholder="Share your experience" value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} required />
-            <button className="btn primary">Submit Review</button>
-            <p className="hint">Only delivered purchases can be reviewed.</p>
-          </form>
+          {!isAdmin && (
+            <form className="review-form glass-card" onSubmit={submitReview}>
+              <h3>Write a review</h3>
+              <select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: event.target.value }))}>
+                {[5, 4, 3, 2, 1].map((rating) => <option value={rating} key={rating}>{rating} stars</option>)}
+              </select>
+              <textarea placeholder="Share your experience" value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} required />
+              <button className="btn primary">Submit Review</button>
+              <p className="hint">Only delivered purchases can be reviewed.</p>
+            </form>
+          )}
           <div className="review-list">
             {reviews.length === 0 && <div className="glass-card empty-review">No Reviews Yet</div>}
             {reviews.map((review) => (

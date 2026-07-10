@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Heart, ShoppingBag, Star } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { useToast } from '../contexts/ToastContext'
 import { useWishlist } from '../contexts/WishlistContext'
@@ -9,6 +10,7 @@ import { normalizeProduct } from '../utils/product'
 
 export default function ProductCard({ product }) {
   const item = normalizeProduct(product)
+  const { isAdmin } = useAuth()
   const { addToCart } = useCart()
   const { showToast } = useToast()
   const { isWishlisted, toggleWishlist } = useWishlist()
@@ -18,6 +20,10 @@ export default function ProductCard({ product }) {
   const [imageFailed, setImageFailed] = useState(false)
 
   const handleAddToCart = async () => {
+    if (Number(item.stock) <= 0) {
+      showToast(`${item.displayName} is currently out of stock`, 'error')
+      return
+    }
     try {
       setIsAdding(true)
       setMessage('')
@@ -53,14 +59,18 @@ export default function ProductCard({ product }) {
   return (
     <article className="product-card hover-tilt">
       <Link className="product-media" to={`/products/${item.slug}`} aria-label={`View ${item.displayName} details`}>
-        <span className="product-badge">{item.badge || (item.stock <= 5 ? 'Low Stock' : 'Featured')}</span>
-        <button
-          className={`wishlist-btn ${isWishlisted(item.id) ? 'active' : ''}`}
-          aria-label={`${isWishlisted(item.id) ? 'Remove' : 'Add'} ${item.displayName} ${isWishlisted(item.id) ? 'from' : 'to'} wishlist`}
-          onClick={(event) => { event.preventDefault(); handleWishlist() }}
-        >
-          <Heart size={17} fill={isWishlisted(item.id) ? 'currentColor' : 'none'} />
-        </button>
+        <span className="product-badge">
+          {Number(item.stock) <= 0 ? 'Out of Stock' : item.badge || (item.stock <= 5 ? 'Low Stock' : 'Featured')}
+        </span>
+        {!isAdmin && (
+          <button
+            className={`wishlist-btn ${isWishlisted(item.id) ? 'active' : ''}`}
+            aria-label={`${isWishlisted(item.id) ? 'Remove' : 'Add'} ${item.displayName} ${isWishlisted(item.id) ? 'from' : 'to'} wishlist`}
+            onClick={(event) => { event.preventDefault(); handleWishlist() }}
+          >
+            <Heart size={17} fill={isWishlisted(item.id) ? 'currentColor' : 'none'} />
+          </button>
+        )}
         {item.displayImageUrl && !imageFailed ? (
           <img className="product-image" src={item.displayImageUrl} alt={item.displayName} loading="lazy" onError={() => setImageFailed(true)} />
         ) : (
@@ -85,14 +95,16 @@ export default function ProductCard({ product }) {
             {item.displayOldPrice > item.displayPrice && <del>{formatCurrency(item.displayOldPrice)}</del>}
           </div>
           <Link className="view-details-link" to={`/products/${item.slug}`}>Details</Link>
-          <button
-            className="mini-cart-btn"
-            aria-label={`Add ${item.displayName} to cart`}
-            onClick={handleAddToCart}
-            disabled={isAdding}
-          >
-            <ShoppingBag size={17} />
-          </button>
+          {!isAdmin && (
+            <button
+              className="mini-cart-btn"
+              aria-label={Number(item.stock) <= 0 ? `${item.displayName} is out of stock` : `Add ${item.displayName} to cart`}
+              onClick={handleAddToCart}
+              disabled={isAdding || Number(item.stock) <= 0}
+            >
+              <ShoppingBag size={17} />
+            </button>
+          )}
         </div>
         {message && <p className="inline-message">{message}</p>}
       </div>

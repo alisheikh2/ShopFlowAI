@@ -1,6 +1,6 @@
 import { Elements } from '@stripe/react-stripe-js'
 import { CreditCard, Truck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import StripeCheckoutForm from '../components/StripeCheckoutForm'
 import { useCart } from '../contexts/CartContext'
@@ -29,6 +29,10 @@ export default function Checkout() {
   const [isPlacing, setIsPlacing] = useState(false)
   const [message, setMessage] = useState('')
   const [checkoutId] = useState(() => crypto.randomUUID())
+
+  useEffect(() => {
+    void fetchCart()
+  }, [fetchCart])
 
   const setField = (field, value) => {
     setShippingAddress((current) => ({ ...current, [field]: value }))

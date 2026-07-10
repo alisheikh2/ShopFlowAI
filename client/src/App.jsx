@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import { RequireRole } from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Products from './pages/Products'
 import ProductDetails from './pages/ProductDetails'
@@ -30,24 +31,28 @@ function App() {
           <Route path="products/:slug" element={<ProductDetails />} />
           <Route path="categories" element={<Categories />} />
           <Route path="categories/:slug" element={<Products />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="checkout/payment/:orderId" element={<PaymentRetry />} />
-          <Route path="order-success/:orderId" element={<OrderSuccess />} />
-          <Route path="wishlist" element={<Wishlist />} />
-          <Route path="account/orders" element={<Orders />} />
+          <Route element={<RequireRole role="customer" />}>
+            <Route path="cart" element={<Cart />} />
+            <Route path="checkout" element={<Checkout />} />
+            <Route path="checkout/payment/:orderId" element={<PaymentRetry />} />
+            <Route path="order-success/:orderId" element={<OrderSuccess />} />
+            <Route path="wishlist" element={<Wishlist />} />
+            <Route path="account/orders" element={<Orders />} />
+          </Route>
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="verify-email/:token" element={<VerifyEmail />} />
           <Route path="reset-password/:token" element={<ResetPassword />} />
           <Route path="resend-verification" element={<ResendVerification />} />
-          <Route path="admin/dashboard" element={<AdminDashboard />} />
-          <Route path="admin/orders" element={<AdminOrders />} />
-          <Route path="admin/products" element={<AdminProducts />} />
-          <Route path="admin/products/new" element={<AdminProductForm />} />
-          <Route path="admin/products/:slug/edit" element={<AdminProductForm />} />
-          <Route path="admin/categories" element={<AdminCategories />} />
+          <Route element={<RequireRole role="admin" />}>
+            <Route path="admin/dashboard" element={<AdminDashboard />} />
+            <Route path="admin/orders" element={<AdminOrders />} />
+            <Route path="admin/products" element={<AdminProducts />} />
+            <Route path="admin/products/new" element={<AdminProductForm />} />
+            <Route path="admin/products/:slug/edit" element={<AdminProductForm />} />
+            <Route path="admin/categories" element={<AdminCategories />} />
+          </Route>
           <Route path="contact" element={<Placeholder title="Contact us" />} />
           <Route path="privacy-policy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="terms" element={<Placeholder title="Terms & Conditions" />} />

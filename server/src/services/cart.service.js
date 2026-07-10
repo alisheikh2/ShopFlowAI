@@ -6,12 +6,25 @@ const ApiError = require("../utils/apiError");
 // removing deleted/unpublished products and persisting only if something changed.
 const formatCart = async (cart) => {
   const originalCount = cart.items.length;
+  const previousPrices = new Map();
 
   cart.items = cart.items.filter(
     (item) => item.product && item.product.isPublished
   );
 
-  if (cart.items.length !== originalCount) {
+  for (const item of cart.items) {
+    const currentPrice =
+      item.product.discountPrice > 0
+        ? item.product.discountPrice
+        : item.product.price;
+    if (Number(item.priceSnapshot) !== Number(currentPrice)) {
+      previousPrices.set(item.product._id.toString(), item.priceSnapshot);
+      item.priceSnapshot = currentPrice;
+    }
+  }
+
+  const pricingUpdated = previousPrices.size > 0;
+  if (cart.items.length !== originalCount || pricingUpdated) {
     await cart.save();
   }
 
@@ -25,10 +38,21 @@ const formatCart = async (cart) => {
     0
   );
 
+  const items = cart.items.map((item) => {
+    const plainItem = item.toObject();
+    const previousPrice = previousPrices.get(item.product._id.toString());
+    return {
+      ...plainItem,
+      priceChanged: previousPrice !== undefined,
+      previousPrice,
+    };
+  });
+
   return {
-    items: cart.items,
+    items,
     totalItems,
     subtotal,
+    pricingUpdated,
   };
 };
 
@@ -98,7 +122,7 @@ const getCart = async (userId) => {
   });
 
   if (!cart) {
-    return { items: [], totalItems: 0, subtotal: 0 };
+    return { items: [], totalItems: 0, subtotal: 0, pricingUpdated: false };
   }
 
   return await formatCart(cart);
@@ -179,7 +203,7 @@ const clearCart = async (userId) => {
   cart.items = [];
   await cart.save();
 
-  return { items: [], totalItems: 0, subtotal: 0 };
+  return { items: [], totalItems: 0, subtotal: 0, pricingUpdated: false };
 };
 
 module.exports = {

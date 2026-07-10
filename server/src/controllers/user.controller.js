@@ -15,6 +15,7 @@ const {
   resendVerification,
 } = require("../services/user.service");
 const generateAccessAndRefreshTokens = require("../utils/generateTokens");
+const { getTokenStorageCandidates } = require("../utils/tokenHash");
 const cookieOptions = require("../constants/cookieOptions");
 const sendEmail = require("../utils/sendEmail");
 const { verificationEmailTemplate,
@@ -93,7 +94,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
 
-    if (!user.refreshToken.includes(incomingRefreshToken)) {
+    const tokenMatches = getTokenStorageCandidates(incomingRefreshToken).some(
+      (candidate) => user.refreshToken.includes(candidate),
+    );
+    if (!tokenMatches) {
       throw new ApiError(401, "Refresh token does not match");
     }
 
@@ -217,11 +221,17 @@ const forgotPasswordController = asyncHandler(async (req, res) => {
     const { user, resetToken } = result;
     const resetUrl = `${getPublicClientUrl()}/reset-password/${resetToken}`;
 
-    await sendEmail({
-      to: user.email,
-      subject: "Reset your ShopFlow AI password",
-      html: passwordResetEmailTemplate(user.name, resetUrl),
-    });
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your ShopFlow AI password",
+        html: passwordResetEmailTemplate(user.name, resetUrl),
+      });
+    } catch (emailError) {
+      // Keep the anti-enumeration response stable during an SMTP outage. The
+      // user can retry, which rotates the saved reset token.
+      console.error("Failed to send password reset email:", emailError.message);
+    }
   }
 
   return res

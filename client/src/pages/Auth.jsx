@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -105,6 +105,7 @@ export function ForgotPassword() {
 function AuthCard({ type }) {
   const isRegister = type === 'register'
   const navigate = useNavigate()
+  const location = useLocation()
   const { googleLogin, login, register } = useAuth()
   const { showToast } = useToast()
   const [form, setForm] = useState({ name: '', email: '', password: '' })
@@ -128,9 +129,11 @@ function AuthCard({ type }) {
         return
       }
 
-      await login({ email: form.email, password: form.password })
+      const loggedInUser = await login({ email: form.email, password: form.password })
       showToast('Welcome back to ShopFlowAI', 'success')
-      navigate('/products')
+      const destination = location.state?.from
+        || (loggedInUser?.role === 'admin' ? '/admin/dashboard' : '/products')
+      navigate(destination, { replace: true })
     } catch (error) {
       setMessageType('error')
       const friendly = friendlyAuthError(error.message)
@@ -144,9 +147,11 @@ function AuthCard({ type }) {
   const handleGoogleLogin = async () => {
     try {
       setMessage('')
-      await googleLogin()
+      const loggedInUser = await googleLogin()
       showToast(isRegister ? 'Google sign up successful' : 'Signed in with Google', 'success')
-      navigate('/products')
+      const destination = location.state?.from
+        || (loggedInUser?.role === 'admin' ? '/admin/dashboard' : '/products')
+      navigate(destination, { replace: true })
     } catch (error) {
       const friendly = friendlyAuthError(error.message)
       setMessageType('error')

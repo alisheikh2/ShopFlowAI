@@ -26,6 +26,7 @@ const verifyRole = require("../middleware/verifyRole");
 const {
   authLimiter,
   forgotPasswordLimiter,
+  refreshLimiter,
 } = require("../middleware/rateLimiter");
 
 router.post(
@@ -38,9 +39,9 @@ router.post(
 
 router.post("/login", authLimiter, loginValidation, validateRequest, login);
 
-router.post("/refresh-token", authLimiter, refreshAccessToken);
+router.post("/refresh-token", refreshLimiter, refreshAccessToken);
 
-router.post("/logout", authLimiter, logout);
+router.post("/logout", logout);
 
 router.get("/me", verifyJWT, getCurrentUser);
 

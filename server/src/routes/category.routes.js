@@ -4,7 +4,9 @@ const ROLES = require("../constants/roles");
 const {
   create,
   getAll,
+  getAllAdmin,
   getOne,
+  getOneAdmin,
   update,
   remove,
 } = require("../controllers/category.controller");
@@ -31,6 +33,9 @@ const categoryDetailTTL = getCacheTTL(process.env.CACHE_TTL_CATEGORY_DETAIL, 600
 // Public Routes
 
 router.get("/", cacheResponse(categoriesListTTL, buildCategoriesListKey), getAll);
+
+router.get("/admin/all", verifyJWT, verifyRole(ROLES.ADMIN), getAllAdmin);
+router.get("/admin/:slug", verifyJWT, verifyRole(ROLES.ADMIN), getOneAdmin);
 
 router.get("/:slug", cacheResponse(categoryDetailTTL, buildCategoryDetailKey), getOne);
 

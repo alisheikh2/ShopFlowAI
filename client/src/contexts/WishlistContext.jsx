@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext'
 const WishlistContext = createContext(null)
 
 export function WishlistProvider({ children }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isCustomer } = useAuth()
   const [wishlist, setWishlist] = useState([])
   const [wishlistIds, setWishlistIds] = useState(new Set())
   const [isWishlistLoading, setIsWishlistLoading] = useState(false)
@@ -19,7 +19,7 @@ export function WishlistProvider({ children }) {
   }
 
   const fetchWishlist = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isCustomer) {
       setWishlist([])
       setWishlistIds(new Set())
       return []
@@ -34,7 +34,7 @@ export function WishlistProvider({ children }) {
     } finally {
       setIsWishlistLoading(false)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, isCustomer])
 
   useEffect(() => {
     fetchWishlist()
@@ -45,6 +45,9 @@ export function WishlistProvider({ children }) {
   const toggleWishlist = async (product) => {
     if (!isAuthenticated) {
       throw new Error('Please login to manage your wishlist.')
+    }
+    if (!isCustomer) {
+      throw new Error('Only customer accounts can manage a wishlist.')
     }
 
     const productId = product._id || product.id

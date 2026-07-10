@@ -22,6 +22,9 @@ export default function Cart() {
 
           {isCartLoading && <div className="glass-card cart-loading skeleton" />}
           {!isCartLoading && cartError && <p className="form-error">{cartError}</p>}
+          {!isCartLoading && cart.pricingUpdated && (
+            <p className="inline-message large-message">One or more prices changed. Your cart total has been refreshed to the latest catalog prices.</p>
+          )}
           {!isCartLoading && cart.items.length === 0 && (
             <EmptyState
               title="Your cart is empty"
@@ -45,11 +48,12 @@ export default function Cart() {
                     <h3>{getProductName(product)}</h3>
                     <p>{product?.sku || `SKU-${String(productId).slice(-8).toUpperCase()}`}</p>
                     <strong>{formatCurrency(item.priceSnapshot)}</strong>
+                    {item.priceChanged && item.previousPrice !== undefined && <del>{formatCurrency(item.previousPrice)}</del>}
                   </div>
                   <div className="qty-control">
                     <button onClick={() => handleQuantity(productId, item.quantity - 1)}><Minus size={15} /></button>
                     <span>{item.quantity}</span>
-                    <button onClick={() => handleQuantity(productId, item.quantity + 1)}><Plus size={15} /></button>
+                    <button disabled={item.quantity >= Number(product?.stock || 0)} onClick={() => handleQuantity(productId, item.quantity + 1)}><Plus size={15} /></button>
                   </div>
                   <button className="icon-btn danger" onClick={() => removeItem(productId)}>
                     <Trash2 size={17} />
