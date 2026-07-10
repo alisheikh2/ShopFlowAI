@@ -14,9 +14,8 @@ import {
 import { useEffect, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import SectionHeader from '../components/SectionHeader'
-import { ProductGridSkeleton } from '../components/LoadingState'
+import { EmptyState, ErrorState, ProductGridSkeleton } from '../components/LoadingState'
 import api from '../services/api'
-import { products as fallbackProducts } from '../data/mockData'
 
 const experienceCards = [
   {
@@ -49,14 +48,17 @@ const journeySteps = [
 export default function Home() {
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const loadHomeData = async () => {
       try {
+        setError('')
         const productsResponse = await api.get('/products', { query: { limit: 4, featured: true } })
-        setProducts(productsResponse.data?.products?.length ? productsResponse.data.products : fallbackProducts)
-      } catch {
-        setProducts(fallbackProducts)
+        setProducts(productsResponse.data?.products || [])
+      } catch (requestError) {
+        setProducts([])
+        setError(requestError.message || 'Unable to load featured products.')
       } finally {
         setIsLoading(false)
       }
@@ -148,9 +150,12 @@ export default function Home() {
           description="Explore customer-favorite devices and accessories selected for performance, style, and everyday value."
           action={<Link className="text-link" to="/products">View catalog <ArrowRight size={16} /></Link>}
         />
-        {isLoading ? (
-          <ProductGridSkeleton count={4} />
-        ) : (
+        {isLoading && <ProductGridSkeleton count={4} />}
+        {!isLoading && error && <ErrorState title="Unable to load featured products" message={error} />}
+        {!isLoading && !error && products.length === 0 && (
+          <EmptyState title="No featured products yet" description="Please check back soon or browse the full catalog." />
+        )}
+        {!isLoading && !error && products.length > 0 && (
           <div className="product-grid">
             {products.slice(0, 4).map((product) => <ProductCard key={product._id || product.id} product={product} />)}
           </div>

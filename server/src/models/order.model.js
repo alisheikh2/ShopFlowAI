@@ -184,6 +184,78 @@ const orderSchema = new mongoose.Schema(
     paymentIntentId: {
       type: String,
       default: "",
+      index: true,
+    },
+
+    // A client-generated key makes order creation safe to retry after a
+    // network error/double-click without reserving inventory twice.
+    checkoutId: {
+      type: String,
+      trim: true,
+      default: undefined,
+    },
+
+    // Stripe inventory is reserved for a bounded window. COD inventory is
+    // committed immediately; released means stock has already been restored.
+    inventoryStatus: {
+      type: String,
+      enum: ["reserved", "committed", "released"],
+      default: "committed",
+    },
+
+    paymentExpiresAt: {
+      type: Date,
+      default: undefined,
+    },
+
+    // Immutable charge quote used to validate signed Stripe webhooks.
+    paymentAmountMinor: {
+      type: Number,
+      min: 1,
+      default: undefined,
+    },
+
+    paymentCurrency: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      default: "usd",
+    },
+
+    paymentExchangeRate: {
+      type: Number,
+      min: 0,
+      default: undefined,
+    },
+
+    paymentAttempt: {
+      type: Number,
+      min: 1,
+      default: 1,
+    },
+
+    lastPaymentError: {
+      type: String,
+      default: "",
+      maxlength: 500,
+    },
+
+    refundStatus: {
+      type: String,
+      enum: ["none", "pending", "processing", "succeeded", "failed"],
+      default: "none",
+    },
+
+    refundId: {
+      type: String,
+      default: "",
+    },
+
+    refundRequestedAt: Date,
+    refundFailureReason: {
+      type: String,
+      default: "",
+      maxlength: 500,
     },
 
     transactionReference: {
@@ -220,5 +292,13 @@ orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 orderSchema.index({ "items.product": 1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ "shippingAddress.city": 1 });
+orderSchema.index({ paymentExpiresAt: 1, inventoryStatus: 1 });
+orderSchema.index(
+  { user: 1, checkoutId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { checkoutId: { $type: "string" } },
+  },
+);
 
 module.exports = mongoose.model("Order", orderSchema);

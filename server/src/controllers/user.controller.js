@@ -22,11 +22,14 @@ const { verificationEmailTemplate,
  } = require("../utils/emailTemplates");
  const getFirebaseAdmin = require("../utils/firebaseAdmin");
 
+const getPublicClientUrl = () =>
+  process.env.PUBLIC_CLIENT_URL ||
+  String(process.env.CLIENT_URL || "").split(",")[0].trim();
 
 const register = asyncHandler(async (req, res) => {
   const { user, verificationToken } = await registerUser(req.body);
 
-  const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+  const verificationUrl = `${getPublicClientUrl()}/verify-email/${verificationToken}`;
 
   try {
     await sendEmail({
@@ -212,7 +215,7 @@ const forgotPasswordController = asyncHandler(async (req, res) => {
 
   if (result) {
     const { user, resetToken } = result;
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${getPublicClientUrl()}/reset-password/${resetToken}`;
 
     await sendEmail({
       to: user.email,
@@ -244,7 +247,7 @@ const resendVerificationController = asyncHandler(async (req, res) => {
 
   if (result) {
     const { user, verificationToken } = result;
-    const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+    const verificationUrl = `${getPublicClientUrl()}/verify-email/${verificationToken}`;
 
     try {
       await sendEmail({

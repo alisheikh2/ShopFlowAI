@@ -1,0 +1,35 @@
+services:
+  mongo:
+    image: mongo:8.0
+    container_name: shopflowai-mongo
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - shopflowai_mongo:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --eval \"try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }\" | grep 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: shopflowai-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - shopflowai_redis:/data
+    profiles: ["cache"]
+    restart: unless-stopped
+
+volumes:
+  shopflowai_mongo:
+  shopflowai_redis:

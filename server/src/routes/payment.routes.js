@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const verifyJWT = require("../middleware/verifyJWT");
+const { paymentLimiter } = require("../middleware/rateLimiter");
 
 const validateRequest = require("../middleware/validateRequest");
 
@@ -23,6 +24,7 @@ router.post(
 router.post(
   "/create-intent",
   verifyJWT,
+  paymentLimiter,
   createPaymentIntentValidation,
   validateRequest,
   createPaymentIntentController

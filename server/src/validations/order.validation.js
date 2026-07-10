@@ -83,6 +83,12 @@ const createOrderValidation = [
     .optional()
     .isIn(["cod", "stripe"])
     .withMessage("Invalid payment method"),
+
+  body("checkoutId")
+    .notEmpty()
+    .withMessage("checkoutId is required")
+    .isUUID()
+    .withMessage("checkoutId must be a valid UUID"),
 ];
 
 const updateOrderStatusValidation = [

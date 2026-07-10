@@ -15,6 +15,8 @@ import AdminProductForm from './pages/AdminProductForm'
 import AdminCategories from './pages/AdminCategories'
 import AdminOrders from './pages/AdminOrders'
 import { ForgotPassword, Login, Register } from './pages/Auth'
+import { ResendVerification, ResetPassword, VerifyEmail } from './pages/AuthRecovery'
+import PaymentRetry from './pages/PaymentRetry'
 import Placeholder from './pages/Placeholder'
 import './App.css'
 
@@ -30,12 +32,16 @@ function App() {
           <Route path="categories/:slug" element={<Products />} />
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
+          <Route path="checkout/payment/:orderId" element={<PaymentRetry />} />
           <Route path="order-success/:orderId" element={<OrderSuccess />} />
           <Route path="wishlist" element={<Wishlist />} />
           <Route path="account/orders" element={<Orders />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="verify-email/:token" element={<VerifyEmail />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
+          <Route path="resend-verification" element={<ResendVerification />} />
           <Route path="admin/dashboard" element={<AdminDashboard />} />
           <Route path="admin/orders" element={<AdminOrders />} />
           <Route path="admin/products" element={<AdminProducts />} />

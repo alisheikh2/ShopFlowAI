@@ -1,7 +1,7 @@
 import { Elements } from '@stripe/react-stripe-js'
 import { CreditCard, Truck } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import StripeCheckoutForm from '../components/StripeCheckoutForm'
 import { useCart } from '../contexts/CartContext'
 import { useToast } from '../contexts/ToastContext'
@@ -28,6 +28,7 @@ export default function Checkout() {
   const [clientSecret, setClientSecret] = useState('')
   const [isPlacing, setIsPlacing] = useState(false)
   const [message, setMessage] = useState('')
+  const [checkoutId] = useState(() => crypto.randomUUID())
 
   const setField = (field, value) => {
     setShippingAddress((current) => ({ ...current, [field]: value }))
@@ -39,6 +40,7 @@ export default function Checkout() {
       billingAddress: shippingAddress,
       deliveryMethod: 'Standard Delivery - 3 to 5 business days',
       paymentMethod,
+      checkoutId,
     })
     return response.data?.order
   }
@@ -48,13 +50,20 @@ export default function Checkout() {
       setIsPlacing(true)
       setMessage('')
       setClientSecret('')
+      if (paymentMethod === 'stripe' && !stripePromise) {
+        throw new Error('Stripe card payments are not configured. Please choose Cash on Delivery or contact support.')
+      }
       const order = await createOrder()
       setCreatedOrder(order)
 
       if (paymentMethod === 'stripe') {
         const intent = await api.post('/payments/create-intent', { orderId: order._id })
+        if (intent.data?.status === 'succeeded') {
+          await handleStripePaid(null, order._id)
+          return
+        }
         setClientSecret(intent.data?.clientSecret)
-        showToast('Order created. Complete card payment securely.', 'info')
+        showToast('Inventory reserved. Complete card payment securely.', 'info')
         return
       }
 
@@ -87,16 +96,17 @@ export default function Checkout() {
     return null
   }
 
-  const handleStripePaid = async () => {
-    await fetchCart()
-    showToast('Payment successful. Syncing order status...', 'success')
-    if (createdOrder?._id) {
-      const syncedOrder = await waitForOrderProcessing(createdOrder._id)
+  const handleStripePaid = async (_paymentIntent, orderIdOverride) => {
+    const paidOrderId = orderIdOverride || createdOrder?._id
+    showToast('Payment successful. Syncing verified order status...', 'success')
+    if (paidOrderId) {
+      const syncedOrder = await waitForOrderProcessing(paidOrderId)
       if (!syncedOrder) {
-        showToast('Stripe confirmed the payment. If the order still shows pending, check your Stripe webhook listener.', 'info')
+        showToast('Stripe confirmed payment. Secure webhook processing may take a few more seconds.', 'info')
       }
     }
-    navigate(`/order-success/${createdOrder?._id || 'created'}`)
+    await fetchCart()
+    navigate(`/order-success/${paidOrderId || 'created'}?payment_redirect=1`)
   }
 
   return (
@@ -118,12 +128,12 @@ export default function Checkout() {
           </div>
           <div className="form-card">
             <h2>Payment method</h2>
-            <label className="option-card"><input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => { setPaymentMethod('cod'); setClientSecret('') }} /> <Truck size={18} /> Cash on Delivery</label>
-            <label className="option-card"><input type="radio" name="payment" checked={paymentMethod === 'stripe'} onChange={() => setPaymentMethod('stripe')} /> <CreditCard size={18} /> Credit/Debit Card (Stripe)</label>
+            <label className="option-card"><input type="radio" name="payment" checked={paymentMethod === 'cod'} disabled={Boolean(createdOrder)} onChange={() => { setPaymentMethod('cod'); setClientSecret('') }} /> <Truck size={18} /> Cash on Delivery</label>
+            <label className="option-card"><input type="radio" name="payment" checked={paymentMethod === 'stripe'} disabled={Boolean(createdOrder)} onChange={() => setPaymentMethod('stripe')} /> <CreditCard size={18} /> Credit/Debit Card (Stripe)</label>
           </div>
           {paymentMethod === 'stripe' && clientSecret && stripePromise && (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <StripeCheckoutForm clientSecret={clientSecret} onPaid={handleStripePaid} />
+              <StripeCheckoutForm clientSecret={clientSecret} orderId={createdOrder?._id} onPaid={handleStripePaid} />
             </Elements>
           )}
           {paymentMethod === 'stripe' && clientSecret && !stripePromise && (
@@ -139,7 +149,10 @@ export default function Checkout() {
             {isPlacing ? 'Placing...' : paymentMethod === 'stripe' ? 'Create Order & Continue to Card' : 'Place Order'}
           </button>
           {message && <p className="form-error">{message}</p>}
-          <p className="hint">Review your details carefully. A professional invoice will be emailed after your order is placed.</p>
+          {createdOrder?._id && paymentMethod === 'stripe' && !clientSecret && (
+            <Link className="btn ghost full" to={`/checkout/payment/${createdOrder._id}`}>Retry Payment for Reserved Order</Link>
+          )}
+          <p className="hint">For card orders, inventory is reserved temporarily and the invoice is sent only after verified payment.</p>
         </aside>
       </div>
     </section>

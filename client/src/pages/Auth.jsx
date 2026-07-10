@@ -7,12 +7,13 @@ import { useToast } from '../contexts/ToastContext'
 
 const friendlyAuthError = (message = '') => {
   const lower = message.toLowerCase()
-  if (lower.includes('invalid') || lower.includes('password') || lower.includes('email')) {
-    return 'The email or password you entered is incorrect. Please check your details and try again.'
-  }
   if (lower.includes('verify')) {
     return 'Please verify your email address before signing in.'
   }
+  if (lower.includes('invalid email or password')) {
+    return 'The email or password you entered is incorrect. Please check your details and try again.'
+  }
+  // Preserve validation details such as password complexity and invalid links.
   return message || 'We could not complete this request right now. Please try again.'
 }
 
@@ -184,6 +185,9 @@ function AuthCard({ type }) {
           {isRegister ? 'Sign up with Google' : 'Sign in with Google'}
         </button>
         <AuthMessage type={messageType}>{message}</AuthMessage>
+        {isRegister && messageType === 'success' && (
+          <Link className="text-link centered" to="/resend-verification">Didn't receive the verification email?</Link>
+        )}
         <div className="auth-switch">
           <span>{isRegister ? 'Already part of ShopFlowAI?' : 'New to ShopFlowAI?'}</span>
           <Link to={isRegister ? '/login' : '/register'}>

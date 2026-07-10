@@ -20,6 +20,7 @@ const { mongoIdParamValidation } = require("../validations/commonValidation");
 const validateRequest = require("../middleware/validateRequest");
 const verifyJWT = require("../middleware/verifyJWT");
 const verifyRole = require("../middleware/verifyRole");
+const { orderLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.post(
   "/",
   verifyJWT,
   verifyRole(ROLES.CUSTOMER),
+  orderLimiter,
   createOrderValidation,
   validateRequest,
   create,

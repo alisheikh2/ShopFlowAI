@@ -6,7 +6,8 @@ This module generates a professional ShopFlowAI PDF invoice and emails it to the
 
 - PDF invoice generated with `pdfkit`
 - Email delivery through existing `nodemailer` SMTP setup
-- Invoice attachment sent immediately after `POST /api/v1/orders`
+- COD invoice attachment sent after `POST /api/v1/orders`
+- Stripe invoice attachment sent only after a signature-verified successful payment webhook
 - Download endpoint: `GET /api/v1/orders/:id/invoice`
 - Invoice fields:
   - ShopFlowAI header/logo, Amazon-style order/invoice number, invoice date

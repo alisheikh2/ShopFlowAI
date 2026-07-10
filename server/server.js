@@ -6,6 +6,10 @@ validateEnv();
 const app = require("./src/app");
 const connectDB = require("./src/database/connectDB");
 const { closeRedisConnection } = require("./src/config/redis");
+const {
+  startCommerceWorker,
+  stopCommerceWorker,
+} = require("./src/workers/commerce.worker");
 const mongoose = require("mongoose");
 
 const PORT = process.env.PORT || 5000;
@@ -18,6 +22,7 @@ const startServer = async () => {
 
     server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      startCommerceWorker();
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);
@@ -27,6 +32,7 @@ const startServer = async () => {
 
 const gracefulShutdown = async (signal) => {
   console.log(`\n${signal} received. Shutting down gracefully...`);
+  stopCommerceWorker();
 
   if (server) {
     server.close(async () => {

@@ -263,7 +263,7 @@ export default function AdminDashboard() {
 
             <div className="admin-breakdown-grid">
               <CompactBreakdown title="Category performance" data={categoryData} />
-              <CompactBreakdown title="Payment methods" data={paymentMethods} labelKey="_id" valueKey="count" />
+              <CompactBreakdown title="Payment methods" data={paymentMethods} labelKey="_id" valueKey="totalOrders" />
               <div className="breakdown-card status-card-3d">
                 <AlertCircle size={22} />
                 <h3>Order status mix</h3>

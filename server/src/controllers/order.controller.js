@@ -10,10 +10,15 @@ const create = asyncHandler(async (req, res) => {
     req.body
   );
 
+  const message =
+    order.paymentMethod === "stripe" && order.paymentStatus !== "paid"
+      ? "Inventory reserved. Complete card payment before the reservation expires."
+      : "Order placed successfully";
+
   return res.status(201).json(
     new ApiResponse(
       201,
-      "Order placed successfully",
+      message,
       {
         order,
       }

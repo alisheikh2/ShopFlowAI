@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
-import { Download, Eye, Star, XCircle } from 'lucide-react'
+import { CreditCard, Download, Eye, Star, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState } from '../components/LoadingState'
@@ -139,7 +139,12 @@ export default function Orders() {
                 <StatusBadge tone={order.paymentStatus === 'paid' ? 'green' : 'orange'}>{order.paymentStatus}</StatusBadge>
                 <div className="row-actions">
                   <Link className="icon-btn" to={`/order-success/${order._id}`}><Eye size={17} /></Link>
-                  <button className="icon-btn" onClick={() => downloadInvoice(order._id, order.invoiceNumber)}><Download size={17} /></button>
+                  {(order.paymentMethod === 'cod' || order.paymentStatus === 'paid') && (
+                    <button className="icon-btn" onClick={() => downloadInvoice(order._id, order.invoiceNumber)}><Download size={17} /></button>
+                  )}
+                  {order.paymentMethod === 'stripe' && ['pending', 'failed'].includes(order.paymentStatus) && order.inventoryStatus === 'reserved' && (
+                    <Link className="icon-btn" title="Complete card payment" to={`/checkout/payment/${order._id}`}><CreditCard size={17} /></Link>
+                  )}
                   {order.orderStatus === 'pending' && (
                     <button className="icon-btn danger" title="Cancel order" onClick={() => setOrderToCancel(order)}><XCircle size={17} /></button>
                   )}

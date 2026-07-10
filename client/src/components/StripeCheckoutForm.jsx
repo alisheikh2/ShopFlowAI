@@ -23,7 +23,7 @@ function StripeField({ label, children }) {
   )
 }
 
-export default function StripeCheckoutForm({ clientSecret, onPaid }) {
+export default function StripeCheckoutForm({ clientSecret, orderId, onPaid }) {
   const stripe = useStripe()
   const elements = useElements()
   const [message, setMessage] = useState('')
@@ -39,7 +39,7 @@ export default function StripeCheckoutForm({ clientSecret, onPaid }) {
         payment_method: {
           card: elements.getElement(CardNumberElement),
         },
-        return_url: `${window.location.origin}/order-success/stripe`,
+        return_url: `${window.location.origin}/order-success/${encodeURIComponent(orderId)}?payment_redirect=1`,
       })
 
       if (result.error) {
@@ -48,10 +48,12 @@ export default function StripeCheckoutForm({ clientSecret, onPaid }) {
       }
 
       if (result.paymentIntent?.status === 'succeeded') {
-        onPaid?.(result.paymentIntent)
+        await onPaid?.(result.paymentIntent)
       } else {
         setMessage(`Payment status: ${result.paymentIntent?.status}`)
       }
+    } catch (error) {
+      setMessage(error.message || 'Unable to confirm card payment. Please try again.')
     } finally {
       setIsPaying(false)
     }

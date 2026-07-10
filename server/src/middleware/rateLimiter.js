@@ -39,4 +39,38 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = { authLimiter, forgotPasswordLimiter, aiLimiter };
+// These run after verifyJWT, so account ID is a stable key and one user cannot
+// reserve the entire catalog or create excessive Stripe attempts.
+const orderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => `user:${req.user._id}`,
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many order attempts. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  keyGenerator: (req) => `user:${req.user._id}`,
+  message: {
+    success: false,
+    statusCode: 429,
+    message: "Too many payment attempts. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = {
+  aiLimiter,
+  authLimiter,
+  forgotPasswordLimiter,
+  orderLimiter,
+  paymentLimiter,
+};

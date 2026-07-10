@@ -44,8 +44,14 @@ const stripeWebhookController = async (req, res) => {
   // 500 so Stripe retries; expected "soft" cases (order not found) are
   // already handled inside handleStripeWebhook by returning normally.
   try {
-    await handleStripeWebhook(event);
-    return res.status(200).json({ received: true });
+    const result = await handleStripeWebhook(event);
+    if (result?.outcome === "rejected") {
+      console.error(
+        `Stripe event ${event.id} rejected:`,
+        result.reason || "validation failed",
+      );
+    }
+    return res.status(200).json({ received: true, outcome: result?.outcome });
   } catch (error) {
     console.error("WEBHOOK HANDLER ERROR:", error.message);
     return res.status(500).json({ error: "Internal webhook error" });
