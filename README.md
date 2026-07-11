@@ -1,70 +1,114 @@
-# ShopFlowAI
+<div align="center">
 
-AI-assisted MERN ecommerce storefront with Firebase login, Stripe card payments, Cash on Delivery, Cloudinary media, Redis caching, analytics, email notifications, and PDF invoices.
+# 🛍️ ShopFlowAI
 
-## Runtime
+**A full-stack, AI-assisted e-commerce platform built solo — from checkout reliability to admin operations.**
 
-- **Node.js 22.12+** (see `.nvmrc` / `.node-version`)
-- MongoDB 8 replica set (transactions are required)
-- Optional Redis 7 cache
+[![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![MongoDB](https://img.shields.io/badge/MongoDB-8-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white)](https://stripe.com)
+[![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?logo=redis&logoColor=white)](https://redis.io)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-```bash
-nvm use
-```
+[Features](#-features) • [Tech Stack](#-tech-stack) • [Getting Started](#-getting-started) • [Architecture](#-architecture-highlights) • [Testing](#-testing--ci)
 
-## Local infrastructure
+</div>
 
-A standalone MongoDB cannot run ShopFlowAI checkout transactions. Start the included single-node development replica set:
+---
+
+## 📖 Overview
+
+ShopFlowAI is a production-style e-commerce SaaS platform covering the full lifecycle of an online store — customer browsing and checkout, Stripe payments, and a complete admin back office — built with a deliberate focus on the problems that break real systems in production: overselling, duplicate webhook events, dead sessions, and inconsistent state after a crash mid-transaction.
+
+It was designed and built end-to-end by a single developer as a deep dive into full-stack engineering, distributed-systems thinking, and production-readiness — not just "does the feature work," but "does it hold up under failure."
+
+## ✨ Features
+
+### 🛒 Customer Experience
+- Browse, search, and filter products by category
+- Cart & wishlist, with persistent state across sessions
+- Secure Stripe checkout using Stripe Elements (no raw card data ever touches the server)
+- Google Sign-In via Firebase, alongside standard email/password auth
+- Email verification, password recovery, and account-recovery flows
+- Order tracking, downloadable PDF invoices, and product reviews
+- AI-generated product descriptions (Gemini API)
+
+### 🛠️ Admin Dashboard
+- Revenue and sales analytics
+- Product & category management, with Cloudinary image uploads
+- Order management — update fulfillment status, issue refunds, export invoices
+- **User management** — search, filter, paginate; change roles; ban/unban accounts with immediate session termination
+
+### ⚙️ Engineering Highlights
+- **Inventory reservation system** — stock is held (not deducted) during checkout and auto-released if payment never completes, preventing overselling
+- **Idempotent Stripe webhooks** — duplicate events are detected and safely ignored, with amount/currency/order cross-checks
+- **Outbox pattern** for refunds and media cleanup, so a crash mid-transaction never leaves the database pointing at something that no longer exists
+- **Hashed refresh tokens** (SHA-256, unique `jti`) — a database leak alone can't be used to hijack a session
+- **In-memory access tokens** with automatic, deduplicated silent refresh — nothing sensitive sits in `localStorage`
+- Redis caching for products, categories, and analytics
+- Rate limiting, input validation, and centralized error handling across every module
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, React Router |
+| Backend | Node.js, Express |
+| Database | MongoDB (Mongoose), replica-set transactions |
+| Caching | Redis |
+| Payments | Stripe (Elements, webhooks, idempotency) |
+| Auth | JWT (access + refresh), Firebase Google Sign-In |
+| Media | Cloudinary |
+| AI | Google Gemini API |
+| Email | Nodemailer |
+| Testing | Node.js test runner, `mongodb-memory-server`, Vitest |
+| CI/CD | GitHub Actions (lint → test → build → audit) |
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js 22.12+** (`nvm use`)
+- Docker (for a local MongoDB replica set — required for transactions)
+
+### 1. Start local infrastructure
 
 ```bash
 docker compose up -d mongo
-docker compose ps
-```
+docker compose ps          # wait for the health check (initializes replica set rs0)
 
-The health check initializes replica set `rs0`. Use:
-
-```env
-MONGO_URI=mongodb://127.0.0.1:27017/shopflowai?replicaSet=rs0
-```
-
-Optional Redis:
-
-```bash
+# optional Redis cache
 docker compose --profile cache up -d
 ```
 
-> The Compose replica member advertises `localhost:27017`, so this development setup expects the Node server to run on the host. Use a proper multi-node/internal hostname configuration in deployed environments.
-
-## Install and run
+### 2. Configure environment variables
 
 ```bash
 cp server/.env.example server/.env
 cp client/.env.example client/.env
+```
 
+Fill in your MongoDB, JWT, SMTP, Stripe, Cloudinary, Gemini, and Firebase credentials. **Never commit `.env` or Firebase service-account JSON.**
+
+### 3. Install & run
+
+```bash
 cd server && npm ci && npm run dev
-# another terminal
+# in a second terminal
 cd client && npm ci && npm run dev
 ```
 
-Frontend: `http://localhost:5173`
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API health check | http://localhost:5000/api/v1/health |
 
-API health: `http://localhost:5000/api/v1/health`
+## 🏗️ Architecture Highlights
 
-Configure valid MongoDB, JWT, SMTP, Stripe, exchange-rate, Cloudinary, Gemini and Firebase credentials before testing those integrations. Never commit `.env` or Firebase service-account JSON.
+<details>
+<summary><strong>💳 Payment lifecycle (click to expand)</strong></summary>
 
-## Firebase Admin
-
-The current adapter reads:
-
-```text
-server/src/config/firebase/shopflowai-firebase-adminsdk.json
-```
-
-That path is gitignored. Download the service-account file from Firebase for local development. In production, mount it from a secret store or replace the adapter with Application Default Credentials.
-
-## Phase 1 payment lifecycle
-
-Stripe checkout now uses a bounded inventory reservation and idempotent payment flow:
+Stripe checkout uses a bounded inventory reservation and idempotent payment flow:
 
 1. The client sends a UUID `checkoutId`; duplicate order requests return the same order.
 2. `POST /orders` reserves inventory for Stripe but keeps cart items until payment succeeds.
@@ -85,98 +129,125 @@ cd server
 npm run worker:once
 ```
 
-Run it every 30–60 seconds using your process manager/scheduler. Multiple workers are safe because events are atomically claimed and Stripe calls use idempotency keys.
+Run it every 30–60 seconds via your process manager/scheduler. Multiple workers are safe — events are atomically claimed and Stripe calls use idempotency keys.
 
-### Upgrading an existing database
+</details>
+
+<details>
+<summary><strong>🔐 Session security (click to expand)</strong></summary>
+
+- Access tokens live only in browser memory; legacy `localStorage` tokens are removed automatically.
+- The HttpOnly refresh cookie restores a session after reload.
+- One failed authenticated request performs a single deduplicated refresh and retries once.
+- Refresh tokens are stored as SHA-256 hashes in MongoDB with a unique JWT `jti`.
+- Existing raw refresh-token sessions migrate automatically on their next rotation/logout.
+- Banned users are rejected immediately — even with a still-valid access token — and lose all active sessions the moment they're banned.
+
+</details>
+
+<details>
+<summary><strong>🗄️ Upgrading an existing database (click to expand)</strong></summary>
 
 Back up MongoDB first, deploy with the commerce worker disabled, then run once:
 
 ```bash
 cd server
-npm run migrate:phase1
+npm run migrate:phase1   # marks legacy inventory state, snapshots Stripe amounts
+npm run migrate:phase2   # hashes any legacy raw refresh tokens (idempotent)
 ```
 
-The migration marks legacy inventory state and snapshots existing Stripe PaymentIntent amount/currency after verifying its order/user metadata. After it succeeds, start the API and worker. Fresh databases do not need this step.
+Fresh databases do not need either step.
 
-After applying the Phase 2 session-security update, run this once on an existing database to hash any legacy raw refresh tokens:
+</details>
+
+<details>
+<summary><strong>🔥 Firebase Admin setup (click to expand)</strong></summary>
+
+The current adapter reads:
+
+```text
+server/src/config/firebase/shopflowai-firebase-adminsdk.json
+```
+
+That path is gitignored. Download the service-account file from Firebase for local development. In production, mount it from a secret store or replace the adapter with Application Default Credentials.
+
+</details>
+
+## 🧪 Testing & CI
 
 ```bash
+# Client
+cd client
+npm run lint
+npm test
+npm run build
+
+# Server
 cd server
-npm run migrate:phase2
+npm test
 ```
 
-The migration is idempotent; already-hashed tokens are left unchanged.
+GitHub Actions runs this full pipeline — lint, test, build, and `npm audit` — on every push and pull request to `main`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-## Stripe local webhook testing
+Server integration tests run against a real in-memory MongoDB **replica set** (via `mongodb-memory-server`), so transactional flows (checkout, reservations, refunds) are tested against real Mongo transaction semantics — not mocks.
+
+<details>
+<summary><strong>Stripe local webhook testing</strong></summary>
 
 ```bash
 stripe listen --forward-to localhost:5000/api/v1/payments/webhook
 ```
 
-Copy the CLI webhook secret to `STRIPE_WEBHOOK_SECRET`. Use Stripe test mode only. Redirect/3DS returns preserve the actual order ID at `/order-success/:orderId` and wait for the signed webhook before showing the paid state.
+Copy the CLI webhook secret to `STRIPE_WEBHOOK_SECRET`. Use Stripe **test mode** only.
 
-## Auth recovery routes
+</details>
 
-The frontend implements all email recovery links generated by the API:
+## 📁 Project Structure
 
-- `/verify-email/:token`
-- `/reset-password/:token`
-- `/resend-verification`
-
-## Session security
-
-- Access tokens live only in browser memory; legacy `localStorage` tokens are removed.
-- The HttpOnly refresh cookie restores a session after reload.
-- One failed authenticated request performs a single deduplicated refresh and retries once.
-- Refresh tokens are stored as SHA-256 hashes in MongoDB and include a unique JWT `jti`.
-- Existing raw refresh-token sessions migrate automatically on their next rotation/logout.
-
-## Scripts
-
-### Client
-
-```bash
-npm run dev
-npm run lint
-npm test
-npm run build
+```
+ShopFlowAI/
+├── client/                 # React 19 + Vite frontend
+│   └── src/
+│       ├── pages/          # Route-level views (customer + admin)
+│       ├── components/     # Shared UI components
+│       ├── contexts/       # Auth, Cart, Wishlist, Toast providers
+│       └── services/       # API client, Stripe, Firebase
+├── server/                 # Express + MongoDB backend
+│   └── src/
+│       ├── controllers/    # Route handlers
+│       ├── services/       # Business logic (orders, payments, reservations…)
+│       ├── models/         # Mongoose schemas
+│       ├── middleware/     # Auth, validation, rate limiting, error handling
+│       └── routes/         # API route definitions
+├── docker-compose.yml       # Local MongoDB replica set + optional Redis
+└── .github/workflows/ci.yml # Lint → test → build → audit pipeline
 ```
 
-### Server
-
-```bash
-npm run dev
-npm start
-npm test
-npm run seed          # destructive catalog seed; use only in development
-npm run worker:once
-npm run migrate:phase2 # once for an existing pre-Phase-2 database
-```
-
-## Verification before a release
-
-```bash
-cd client
-npm ci
-npm run lint
-npm test
-npm run build
-npm audit
-
-cd ../server
-npm ci
-npm test
-npm audit
-```
-
-For payment integration tests, use a disposable Mongo replica set and Stripe test webhook fixtures. Verify duplicate events, out-of-order failed/succeeded events, reservation expiry, cancellation during payment, and refund retries.
-
-## Important deployment notes
+## 🌐 Deployment Notes
 
 - Use Node 22.12+ on all API, worker, build, and CI machines.
-- Use MongoDB Atlas or a production replica set; do not deploy a standalone MongoDB.
+- Use MongoDB Atlas or a production replica set — never deploy a standalone MongoDB (transactions require a replica set).
 - Run at least one commerce worker continuously.
 - Use a shared Redis rate-limit/cache store when scaling horizontally.
 - Configure Stripe webhooks with the raw request body and HTTPS.
-- Back up and monitor `orders`, `stripeevents`, and `outboxevents` collections.
+- Back up and monitor the `orders`, `stripeevents`, and `outboxevents` collections.
 - Alert on failed outbox events and `refundStatus: failed`.
+
+## 🗺️ Roadmap
+
+- [ ] Production deployment (Vercel + Render/Atlas)
+- [ ] Replace placeholder catalog imagery with verified product photos
+- [ ] UI polish pass
+
+## 👤 Author
+
+**Ali Hassan**
+BS Computer Science, COMSATS University Islamabad (Sahiwal Campus)
+
+- GitHub: [@alisheikh2](https://github.com/alisheikh2)
+
+---
+
+<div align="center">
+Built as an independent, production-style engineering project — not a tutorial clone.
+</div>
