@@ -11,7 +11,7 @@
 [![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-[Features](#-features) • [Tech Stack](#-tech-stack) • [Getting Started](#-getting-started) • [Architecture](#-architecture-highlights) • [Testing](#-testing--ci)
+[Features](#features) • [Tech Stack](#tech-stack) • [Getting Started](#getting-started) • [Architecture](#architecture-highlights) • [Testing](#testing--ci)
 
 </div>
 
@@ -23,6 +23,7 @@ ShopFlowAI is a production-style e-commerce SaaS platform covering the full life
 
 It was designed and built end-to-end by a single developer as a deep dive into full-stack engineering, distributed-systems thinking, and production-readiness — not just "does the feature work," but "does it hold up under failure."
 
+<a id="features"></a>
 ## ✨ Features
 
 ### 🛒 Customer Experience
@@ -49,6 +50,7 @@ It was designed and built end-to-end by a single developer as a deep dive into f
 - Redis caching for products, categories, and analytics
 - Rate limiting, input validation, and centralized error handling across every module
 
+<a id="tech-stack"></a>
 ## 🧰 Tech Stack
 
 | Layer | Technology |
@@ -65,6 +67,7 @@ It was designed and built end-to-end by a single developer as a deep dive into f
 | Testing | Node.js test runner, `mongodb-memory-server`, Vitest |
 | CI/CD | GitHub Actions (lint → test → build → audit) |
 
+<a id="getting-started"></a>
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -103,6 +106,7 @@ cd client && npm ci && npm run dev
 | Frontend | http://localhost:5173 |
 | API health check | http://localhost:5000/api/v1/health |
 
+<a id="architecture-highlights"></a>
 ## 🏗️ Architecture Highlights
 
 <details>
@@ -173,6 +177,7 @@ That path is gitignored. Download the service-account file from Firebase for loc
 
 </details>
 
+<a id="testing--ci"></a>
 ## 🧪 Testing & CI
 
 ```bash
