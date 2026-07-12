@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import ScrollToTop from './components/ScrollToTop'
 import { RequireRole } from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Products from './pages/Products'
@@ -30,6 +31,7 @@ import './catalog-admin.css'
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
