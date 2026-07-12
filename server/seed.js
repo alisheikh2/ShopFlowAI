@@ -746,47 +746,42 @@ const products = [
 
 
 
-const productImagePools = {
-  smartphones: [
-    "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=900&q=85",
-  ],
-  laptops: [
-    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=900&q=85",
-  ],
-  tablets: [
-    "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1561154464-82e9adf32764?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1589739900243-4b52cd9b104e?auto=format&fit=crop&w=900&q=85",
-  ],
-  smartwatches: [
-    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=900&q=85",
-  ],
-  headphones: [
-    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=900&q=85",
-  ],
-  gaming: [
-    "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?auto=format&fit=crop&w=900&q=85",
-  ],
-  cameras: [
-    "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1500634245200-e5245c7574ef?auto=format&fit=crop&w=900&q=85",
-  ],
-  accessories: [
-    "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=900&q=85",
-    "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=900&q=85",
-  ],
+const productsWithTwoSeedImages = new Set([
+  "iPhone 16 Pro Max",
+  "Google Pixel 10 Pro",
+  "Xiaomi 16 Ultra",
+  "MacBook Pro M4",
+  "ASUS ROG Zephyrus G16",
+  "HP Spectre x360",
+  "iPad Pro M4 13",
+  "OnePlus Pad 2",
+  "Lenovo Tab Extreme",
+  "Apple Watch Ultra 3",
+  "Google Pixel Watch 3",
+  "Amazfit Balance",
+  "AirPods Pro 3",
+  "Bose QuietComfort Ultra",
+  "Samsung Galaxy Buds 4 Pro",
+  "PlayStation 5 Pro",
+  "Nintendo Switch 2",
+  "Logitech G Pro X Keyboard",
+  "Sony Alpha A7 V",
+  "Nikon Z8",
+  "DJI Osmo Pocket 4",
+  "Apple MagSafe Charger",
+  "Samsung 45W Charger",
+  "Logitech MX Master 4",
+]);
+
+const alternateSeedImageQueries = {
+  "Xiaomi 16 Ultra": "Xiaomi 16 Ultra Leica camera module close up",
+  "AirPods Pro 3": "AirPods Pro 3 charging case open",
+  "Bose QuietComfort Ultra": "Bose QuietComfort Ultra folded side view",
+  "Samsung Galaxy Buds 4 Pro": "Samsung Galaxy Buds 4 Pro charging case",
+  "Logitech G Pro X Keyboard": "Logitech G Pro X RGB keyboard desk setup",
+  "DJI Osmo Pocket 4": "DJI Osmo Pocket 4 handheld gimbal",
+  "Apple MagSafe Charger": "Apple MagSafe Charger charging iPhone",
+  "Samsung 45W Charger": "Samsung 45W Charger with USB C cable",
 };
 
 const getProductCategorySlug = (product) => {
@@ -824,15 +819,29 @@ const createProductDescription = (product) => {
   return `${product.name} by ${product.brand} is a carefully selected ${categorySlug.replace(/-/g, " ")} product ${pricePosition}. ${categoryCopy} The product is listed with reliable stock availability, brand-backed quality, and a clean ShopFlowAI buying experience that includes secure checkout, order updates, and professional invoice support. Whether you are upgrading your personal setup or buying for work, this item is positioned to deliver dependable performance, modern styling, and practical everyday benefits.`;
 };
 
-const createProductImage = (product, index) => {
-  const categorySlug = getProductCategorySlug(product);
-  const pool = productImagePools[categorySlug] || productImagePools.accessories;
-  const slug = product.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const createProductImages = (product, productIndex) => {
+  const imageCount = productsWithTwoSeedImages.has(product.name) ? 2 : 1;
+  const searchQueries = [
+    `${product.name} official product image white background`,
+    alternateSeedImageQueries[product.name]
+      || `${product.name} official product back side view`,
+  ];
 
-  return {
-    public_id: `shopflow/seed/${slug}-${index + 1}`,
-    url: pool[index % pool.length],
-  };
+  const slug = product.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return searchQueries.slice(0, imageCount).map((searchQuery, imageIndex) => {
+    const imageHost = `tse${((productIndex + imageIndex) % 4) + 1}.mm.bing.net`;
+    const query = encodeURIComponent(searchQuery);
+
+    return {
+      public_id: `shopflow/seed/${slug}-${imageIndex + 1}`,
+      url: `https://${imageHost}/th?q=${query}&w=900&h=900&c=7&rs=1&p=${imageIndex}&pid=1.7`,
+    };
+  });
 };
 
 await Product.insertMany(
@@ -843,7 +852,7 @@ await Product.insertMany(
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-"),
-    images: [createProductImage(product, index)],
+    images: createProductImages(product, index),
   }))
 );
 

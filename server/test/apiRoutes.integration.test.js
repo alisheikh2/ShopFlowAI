@@ -11,8 +11,19 @@ const crypto = require("node:crypto");
 const { MongoMemoryReplSet } = require("mongodb-memory-server");
 const mongoose = require("mongoose");
 const User = require("../src/models/user.model");
+const cloudinary = require("../src/config/cloudinary");
 const emailService = require("../src/services/emailNotification.service");
 const invoiceService = require("../src/services/invoice.service");
+
+let uploadedImageCounter = 0;
+cloudinary.uploader.upload = async () => {
+  uploadedImageCounter += 1;
+  return {
+    public_id: `shopflow/test/api-product-${uploadedImageCounter}`,
+    secure_url: `https://example.com/api-product-${uploadedImageCounter}.jpg`,
+  };
+};
+cloudinary.uploader.destroy = async () => ({ result: "ok" });
 
 for (const name of [
   "sendOrderConfirmationEmail",
@@ -38,13 +49,15 @@ const request = async (
   path,
   { body, token, cookie, origin = "http://allowed.test", expected = 200 } = {},
 ) => {
-  const headers = { "Content-Type": "application/json", Origin: origin };
+  const isFormData = body instanceof FormData;
+  const headers = { Origin: origin };
+  if (!isFormData) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   if (cookie) headers.Cookie = cookie;
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("json")
@@ -116,15 +129,30 @@ test("auth middleware, refresh rotation and controlled CORS rejection work", asy
 });
 
 test("admin/public catalog, search, cart and COD order routes work together", async () => {
+  const missingDescription = await request("POST", "/categories", {
+    token: adminToken,
+    expected: 400,
+    body: { name: "Missing Description" },
+  });
+  assert.match(missingDescription.payload.message, /description is required/i);
+
   const hidden = await request("POST", "/categories", {
     token: adminToken,
     expected: 201,
-    body: { name: "API Hidden", isActive: false },
+    body: {
+      name: "API Hidden",
+      description: "A hidden category used to verify admin-only catalog visibility.",
+      isActive: false,
+    },
   });
   const active = await request("POST", "/categories", {
     token: adminToken,
     expected: 201,
-    body: { name: "API Active", isActive: true },
+    body: {
+      name: "API Active",
+      description: "An active category used for API product and order testing.",
+      isActive: true,
+    },
   });
 
   const publicCategories = await request("GET", "/categories");
@@ -139,19 +167,36 @@ test("admin/public catalog, search, cart and COD order routes work together", as
   });
   assert.equal(adminCategories.payload.data.categories.length, 2);
 
+  const productFields = {
+    name: "API Route Product",
+    sku: "API-UNIQUE-9911",
+    brand: "RouteBrand",
+    description: "A valid product created by the API integration test.",
+    price: "1200",
+    stock: "5",
+    category: active.payload.data.category._id,
+    isPublished: "true",
+  };
+
+  const missingImage = await request("POST", "/products", {
+    token: adminToken,
+    expected: 400,
+    body: productFields,
+  });
+  assert.match(missingImage.payload.message, /at least one product image/i);
+
+  const productForm = new FormData();
+  Object.entries(productFields).forEach(([key, value]) => productForm.append(key, value));
+  productForm.append(
+    "images",
+    new Blob(["shopflow-test-image"], { type: "image/png" }),
+    "api-product.png",
+  );
+
   const productResponse = await request("POST", "/products", {
     token: adminToken,
     expected: 201,
-    body: {
-      name: "API Route Product",
-      sku: "API-UNIQUE-9911",
-      brand: "RouteBrand",
-      description: "A valid product created by the API integration test.",
-      price: 1200,
-      stock: 5,
-      category: active.payload.data.category._id,
-      isPublished: true,
-    },
+    body: productForm,
   });
   const product = productResponse.payload.data.product;
   const bySku = await request("GET", "/products?search=UNIQUE-9911");

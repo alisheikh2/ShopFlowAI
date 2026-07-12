@@ -27,7 +27,11 @@ test.before(async () => {
     isEmailVerified: true,
   });
   activeCategory = await categoryService.createCategory(
-    { name: "Active Catalog", isActive: true },
+    {
+      name: "Active Catalog",
+      description: "An active category used by catalog integrity tests.",
+      isActive: true,
+    },
     user._id,
   );
 });
@@ -39,7 +43,11 @@ test.after(async () => {
 
 test("public categories hide inactive records while admin listing includes them", async () => {
   await categoryService.createCategory(
-    { name: "Hidden Catalog", isActive: false },
+    {
+      name: "Hidden Catalog",
+      description: "A hidden category used by catalog visibility tests.",
+      isActive: false,
+    },
     user._id,
   );
   const publicResult = await categoryService.getAllCategories({ limit: 100 });

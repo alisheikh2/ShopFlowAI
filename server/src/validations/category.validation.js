@@ -9,10 +9,11 @@ const createCategoryValidation = [
     .withMessage("Category name must be between 2 and 100 characters"),
 
   body("description")
-    .optional()
     .trim()
-    .isString()
-    .withMessage("Description must be a string"),
+    .notEmpty()
+    .withMessage("Category description is required")
+    .isLength({ min: 10, max: 500 })
+    .withMessage("Category description must be between 10 and 500 characters"),
 
   body("image")
     .optional()
@@ -41,8 +42,10 @@ const updateCategoryValidation = [
   body("description")
     .optional()
     .trim()
-    .isString()
-    .withMessage("Description must be a string"),
+    .notEmpty()
+    .withMessage("Category description cannot be empty")
+    .isLength({ min: 10, max: 500 })
+    .withMessage("Category description must be between 10 and 500 characters"),
 
   body("image")
     .optional()

@@ -26,6 +26,7 @@ export default function AdminProductForm() {
   const [form, setForm] = useState(initialForm)
   const [categories, setCategories] = useState([])
   const [images, setImages] = useState([])
+  const [existingImageCount, setExistingImageCount] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
   // Left empty by default — the admin should type in the product's own
@@ -47,6 +48,7 @@ export default function AdminProductForm() {
         if (isEdit) {
           const response = await api.get(`/products/admin/${slug}`)
           const product = response.data?.product
+          setExistingImageCount(Array.isArray(product.images) ? product.images.length : 0)
           setForm({
             name: product.name || '',
             sku: product.sku || '',
@@ -83,6 +85,12 @@ export default function AdminProductForm() {
 
   const submit = async (event) => {
     event.preventDefault()
+
+    if (images.length === 0 && existingImageCount === 0) {
+      showToast('Please upload at least one product image before saving the product.', 'error')
+      return
+    }
+
     try {
       setIsSaving(true)
       const payload = buildFormData()
@@ -143,10 +151,22 @@ export default function AdminProductForm() {
           <input type="number" placeholder="Price" value={form.price} onChange={(event) => update('price', event.target.value)} required />
           <input type="number" placeholder="Discount price" value={form.discountPrice} onChange={(event) => update('discountPrice', event.target.value)} />
           <input type="number" placeholder="Stock" value={form.stock} onChange={(event) => update('stock', event.target.value)} required />
-          <label className="file-upload-field">
-            <input type="file" multiple accept="image/*" onChange={(event) => setImages([...event.target.files])} />
-            <span>Choose product images</span>
-            <strong>{images.length > 0 ? `${images.length} selected` : 'PNG, JPG, WEBP'}</strong>
+          <label className="file-upload-field required-upload">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              aria-required={existingImageCount === 0}
+              onChange={(event) => setImages([...event.target.files])}
+            />
+            <span>Product images <small>At least 1 required</small></span>
+            <strong>
+              {images.length > 0
+                ? `${images.length} selected`
+                : existingImageCount > 0
+                  ? `${existingImageCount} saved`
+                  : 'Choose images'}
+            </strong>
           </label>
           <textarea className="span-2" placeholder="Description" rows="7" value={form.description} onChange={(event) => update('description', event.target.value)} required />
           <input className="span-2" placeholder="AI features (comma separated)" value={features} onChange={(event) => setFeatures(event.target.value)} />

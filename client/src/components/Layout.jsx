@@ -1,8 +1,13 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
+  BarChart3,
+  Boxes,
   ChevronDown,
+  FileText,
+  FolderTree,
   Heart,
+  Home as HomeIcon,
   LogOut,
   Mail,
   MapPin,
@@ -11,6 +16,7 @@ import {
   ShoppingBag,
   Sparkles,
   UserRound,
+  X,
 } from 'lucide-react'
 import logo from '../assets/shopflowai-logo.png'
 import AnimatedBackground from './AnimatedBackground'
@@ -82,10 +88,10 @@ function Header() {
             </button>
             {isProfileOpen && (
               <div className="profile-dropdown">
-                {isCustomer && <Link to="/account/orders" onClick={() => setIsProfileOpen(false)}>My Orders</Link>}
+                {isCustomer && <Link className="profile-orders-link" to="/account/orders" onClick={() => setIsProfileOpen(false)}>My Orders</Link>}
                 {isCustomer && <Link to="/wishlist" onClick={() => setIsProfileOpen(false)}>Wishlist</Link>}
                 {user?.role === 'admin' && <Link to="/admin/dashboard" onClick={() => setIsProfileOpen(false)}>Admin Dashboard</Link>}
-                <button onClick={() => setShowLogoutConfirm(true)}><LogOut size={16} /> Logout</button>
+                <button className="profile-logout-btn" onClick={() => setShowLogoutConfirm(true)}><LogOut size={16} /> Logout</button>
               </div>
             )}
             {showLogoutConfirm && (
@@ -96,7 +102,7 @@ function Header() {
                   <p>Your cart and wishlist will stay saved, but you will need to sign in again to manage orders.</p>
                   <div className="logout-confirm-actions">
                     <button className="btn ghost" onClick={() => setShowLogoutConfirm(false)}>Stay Logged In</button>
-                    <button className="btn primary" onClick={confirmLogout}>Yes, Logout</button>
+                    <button className="btn danger-action" onClick={confirmLogout}>Yes, Logout</button>
                   </div>
                 </div>
               </div>
@@ -118,22 +124,45 @@ function Header() {
           aria-controls="mobile-header-menu"
           onClick={() => setIsMobileMenuOpen((current) => !current)}
         >
-          <Menu size={20} />
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {isMobileMenuOpen && (
-        <nav id="mobile-header-menu" className="mobile-header-menu" aria-label="Responsive navigation">
-          {getNavItems(user?.role).map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setIsMobileMenuOpen(false)}>
-              {item.label}
-            </NavLink>
-          ))}
-          {user?.role === 'admin' && (
-            <NavLink to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Admin Dashboard</NavLink>
-          )}
-          {!isAuthenticated && <NavLink to="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</NavLink>}
-        </nav>
+        <>
+          <button
+            type="button"
+            className="mobile-menu-backdrop"
+            aria-label="Close navigation menu"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <nav id="mobile-header-menu" className="mobile-header-menu" aria-label="Responsive navigation">
+            <div className="mobile-menu-heading">
+              <div>
+                <small>Navigation</small>
+                <strong>Explore ShopFlowAI</strong>
+              </div>
+              <Sparkles size={18} />
+            </div>
+            <div className="mobile-menu-links">
+              {getNavItems(user?.role).map((item) => (
+                <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setIsMobileMenuOpen(false)}>
+                  {item.label}
+                </NavLink>
+              ))}
+              {user?.role === 'admin' && (
+                <NavLink to="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Admin Dashboard</NavLink>
+              )}
+              {!isAuthenticated && <NavLink to="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</NavLink>}
+            </div>
+            {user?.role !== 'admin' && (
+              <div className="mobile-menu-shortcuts">
+                <Link to="/wishlist" onClick={() => setIsMobileMenuOpen(false)}><Heart size={16} /> Wishlist</Link>
+                <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)}><ShoppingBag size={16} /> Cart</Link>
+              </div>
+            )}
+          </nav>
+        </>
       )}
     </header>
   )
@@ -184,21 +213,26 @@ function MobileBottomNav() {
   const { user } = useAuth()
   if (user?.role === 'admin') {
     return (
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        <NavLink to="/" end>Home</NavLink>
-        <NavLink to="/products">Products</NavLink>
-        <NavLink to="/categories">Categories</NavLink>
-        <NavLink to="/admin/dashboard">Admin</NavLink>
+      <nav className="mobile-bottom-nav admin-bottom-nav" aria-label="Mobile navigation">
+        <NavLink to="/" end><HomeIcon size={19} /><span>Home</span></NavLink>
+        <NavLink to="/products"><Boxes size={19} /><span>Products</span></NavLink>
+        <NavLink to="/categories"><FolderTree size={19} /><span>Categories</span></NavLink>
+        <NavLink to="/admin/dashboard"><BarChart3 size={19} /><span>Admin</span></NavLink>
       </nav>
     )
   }
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      <NavLink to="/" end>Home</NavLink>
-      <NavLink to="/products">Shop</NavLink>
-      <NavLink to="/cart">Cart {cart.totalItems > 0 ? `(${cart.totalItems})` : ''}</NavLink>
-      <NavLink to="/account/orders">Orders</NavLink>
+    <nav className="mobile-bottom-nav customer-bottom-nav" aria-label="Mobile navigation">
+      <NavLink to="/" end><HomeIcon size={19} /><span>Home</span></NavLink>
+      <NavLink to="/products"><Boxes size={19} /><span>Shop</span></NavLink>
+      <NavLink to="/categories"><FolderTree size={19} /><span>Categories</span></NavLink>
+      <NavLink className="mobile-cart-link" to="/cart">
+        <ShoppingBag size={19} />
+        <span>Cart</span>
+        {cart.totalItems > 0 && <strong>{cart.totalItems > 99 ? '99+' : cart.totalItems}</strong>}
+      </NavLink>
+      <NavLink to="/account/orders"><FileText size={19} /><span>Orders</span></NavLink>
     </nav>
   )
 }

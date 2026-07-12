@@ -1,0 +1,22 @@
+/* Mobile navigation follow-up: remove duplicate drawer and expose key routes. */
+@media (max-width: 767px) {
+  /* The fixed bottom navigation replaces the duplicate hamburger drawer. */
+  .mobile-menu,
+  .mobile-header-menu,
+  .mobile-menu-backdrop {
+    display: none !important;
+  }
+
+  /* Restore the desktop-style heart-only wishlist shortcut beside Cart. */
+  .header-actions .icon-btn.useful-action {
+    display: inline-flex !important;
+  }
+
+  .mobile-bottom-nav.customer-bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .mobile-bottom-nav.admin-bottom-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

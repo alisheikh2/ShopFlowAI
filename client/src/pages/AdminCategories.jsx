@@ -1,20 +1,24 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import AdminDeleteDialog from '../components/AdminDeleteDialog'
 import AdminShell from '../components/AdminShell'
 import { EmptyState, ErrorState } from '../components/LoadingState'
 import StatusBadge from '../components/StatusBadge'
+import { useToast } from '../contexts/ToastContext'
 import api from '../services/api'
 
-const initialCategory = { name: '', description: '', image: '', isFeatured: false, isActive: true }
+const initialCategory = { name: '', description: '', isFeatured: false, isActive: true }
 
 export default function AdminCategories() {
+  const { showToast } = useToast()
   const [categories, setCategories] = useState([])
   const [form, setForm] = useState(initialCategory)
   const [editingSlug, setEditingSlug] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [categoryPendingDelete, setCategoryPendingDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadCategories = async () => {
     try {
@@ -40,7 +44,6 @@ export default function AdminCategories() {
     setForm({
       name: category.name || '',
       description: category.description || '',
-      image: category.image || '',
       isFeatured: Boolean(category.isFeatured),
       isActive: category.isActive !== false,
     })
@@ -48,25 +51,44 @@ export default function AdminCategories() {
 
   const submit = async (event) => {
     event.preventDefault()
+    const description = form.description.trim()
+
+    if (description.length < 10) {
+      showToast('Please add a meaningful category description of at least 10 characters.', 'error')
+      return
+    }
+
     try {
-      setMessage('')
+      const payload = { ...form, name: form.name.trim(), description }
       if (editingSlug) {
-        await api.put(`/categories/${editingSlug}`, form)
+        await api.put(`/categories/${editingSlug}`, payload)
+        showToast('Category updated successfully.', 'success')
       } else {
-        await api.post('/categories', form)
+        await api.post('/categories', payload)
+        showToast('Category created successfully.', 'success')
       }
       setForm(initialCategory)
       setEditingSlug('')
       await loadCategories()
-    } catch (err) {
-      setMessage(err.message)
+    } catch (requestError) {
+      showToast(requestError.message || 'Could not save this category.', 'error')
     }
   }
 
-  const remove = async (slug) => {
-    if (!confirm('Delete this category? Products assigned to it must be moved first.')) return
-    await api.delete(`/categories/${slug}`)
-    await loadCategories()
+  const remove = async () => {
+    if (!categoryPendingDelete) return
+
+    try {
+      setIsDeleting(true)
+      await api.delete(`/categories/${categoryPendingDelete.slug}`)
+      showToast(`${categoryPendingDelete.name} was deleted successfully.`, 'success')
+      setCategoryPendingDelete(null)
+      await loadCategories()
+    } catch (requestError) {
+      showToast(requestError.message || 'Could not delete this category.', 'error')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -81,9 +103,19 @@ export default function AdminCategories() {
 
       <form className="admin-form-card compact-form" onSubmit={submit}>
         <div className="form-grid">
-          <input placeholder="Category name" value={form.name} onChange={(event) => update('name', event.target.value)} required />
-          <input placeholder="Image URL (optional)" value={form.image} onChange={(event) => update('image', event.target.value)} />
-          <input className="span-2" placeholder="Description" value={form.description} onChange={(event) => update('description', event.target.value)} />
+          <input className="span-2" placeholder="Category name" value={form.name} onChange={(event) => update('name', event.target.value)} required />
+          <label className="admin-field-label span-2">
+            <span>Category description <strong>Required</strong></span>
+            <textarea
+              placeholder="Describe what customers will find in this category"
+              rows="4"
+              maxLength="500"
+              aria-required="true"
+              value={form.description}
+              onChange={(event) => update('description', event.target.value)}
+            />
+            <small>Use at least 10 characters so customers understand this collection.</small>
+          </label>
         </div>
         <div className="admin-form-actions">
           <label><input type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} /> Featured</label>
@@ -91,7 +123,6 @@ export default function AdminCategories() {
           <button className="btn primary"><Plus size={18} /> {editingSlug ? 'Update Category' : 'Add Category'}</button>
           {editingSlug && <button className="btn ghost" type="button" onClick={() => { setEditingSlug(''); setForm(initialCategory) }}>Cancel</button>}
         </div>
-        {message && <p className="form-error">{message}</p>}
       </form>
 
       {isLoading && <div className="table-card order-table-skeleton skeleton" />}
@@ -108,13 +139,30 @@ export default function AdminCategories() {
               <StatusBadge tone={category.isActive ? 'green' : 'orange'}>{category.isActive ? 'Active' : 'Inactive'}</StatusBadge>
               <StatusBadge tone={category.isFeatured ? 'blue' : 'orange'}>{category.isFeatured ? 'Featured' : 'Standard'}</StatusBadge>
               <div className="row-actions">
-                <button className="icon-btn" onClick={() => edit(category)}><Edit size={17} /></button>
-                <button className="icon-btn danger" onClick={() => remove(category.slug)}><Trash2 size={17} /></button>
+                <button type="button" className="icon-btn" title={`Edit ${category.name}`} onClick={() => edit(category)}><Edit size={17} /></button>
+                <button
+                  type="button"
+                  className="icon-btn danger"
+                  title={`Delete ${category.name}`}
+                  onClick={() => setCategoryPendingDelete(category)}
+                >
+                  <Trash2 size={17} />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <AdminDeleteDialog
+        isOpen={Boolean(categoryPendingDelete)}
+        itemName={categoryPendingDelete?.name}
+        itemType="category"
+        description="The category can only be deleted when no products are assigned to it. This cannot be undone."
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setCategoryPendingDelete(null)}
+        onConfirm={remove}
+      />
     </AdminShell>
   )
 }

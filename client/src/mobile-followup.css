@@ -1,0 +1,197 @@
+/* Follow-up mobile fixes. Kept separate to avoid conflicts with mobile.css. */
+@media (max-width: 767px) {
+  /* 1. Desktop-style hero composition, scaled for mobile. */
+  .hero-visual,
+  .premium-hero-visual {
+    min-height: 320px;
+  }
+
+  .premium-hero-visual .orbital-card {
+    z-index: 7;
+    display: block;
+    padding: 8px 10px;
+    border-radius: 13px;
+    font-size: 10px;
+    line-height: 1;
+    box-shadow: 0 12px 28px rgba(2, 10, 47, 0.13);
+  }
+
+  .premium-hero-visual .card-a {
+    top: 16px;
+    left: 3px;
+  }
+
+  .premium-hero-visual .card-b {
+    right: 3px;
+    bottom: 27px;
+  }
+
+  .premium-hero-visual .card-c {
+    left: 4px;
+    bottom: 7px;
+  }
+
+  .premium-hero-visual .holo-panel {
+    z-index: 6;
+    display: block;
+    width: 116px;
+    padding: 10px;
+    border-radius: 16px;
+    box-shadow: 0 15px 34px rgba(2, 10, 47, 0.14);
+  }
+
+  .premium-hero-visual .holo-panel small {
+    font-size: 7px;
+    letter-spacing: 0.07em;
+  }
+
+  .premium-hero-visual .holo-panel strong {
+    margin: 4px 0 8px;
+    font-size: 13px;
+  }
+
+  .premium-hero-visual .panel-left {
+    left: -2px;
+    top: 102px;
+    transform: rotateY(8deg) rotateX(3deg);
+  }
+
+  .premium-hero-visual .panel-right {
+    right: -2px;
+    top: 142px;
+    transform: rotateY(-8deg) rotateX(3deg);
+  }
+
+  .premium-hero-visual .mini-progress {
+    height: 5px;
+  }
+
+  .premium-hero-visual .mini-bars {
+    gap: 3px;
+  }
+
+  .premium-hero-visual .mini-bars i {
+    height: 4px;
+  }
+
+  .premium-hero-visual .floating-product {
+    z-index: 5;
+    display: grid;
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+    font-size: 19px;
+    box-shadow: 0 12px 28px rgba(2, 10, 47, 0.12);
+  }
+
+  .premium-hero-visual .product-a {
+    right: 23px;
+    top: 51px;
+  }
+
+  .premium-hero-visual .product-b {
+    left: 31px;
+    bottom: 53px;
+  }
+
+  /* 2. Compact category cards. Product detail styles are not affected. */
+  .category-card {
+    min-height: 138px;
+    padding: 16px 18px;
+    border-radius: 21px;
+  }
+
+  .category-card span {
+    font-size: 31px;
+  }
+
+  .category-card h3 {
+    margin: 13px 0 4px;
+    font-size: 18px;
+  }
+
+  .category-card p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* 3. Stable no-wrap order and payment status rows. */
+  .order-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 15px;
+  }
+
+  .order-row > * {
+    min-width: 0;
+    grid-column: 1;
+  }
+
+  .order-row > div:first-child {
+    margin-bottom: 4px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .order-row > .order-total-value,
+  .order-row > .order-status-value,
+  .order-row > .payment-status-value {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .order-row > .order-total-value {
+    color: var(--navy);
+    background: var(--surface-2);
+    font-size: 16px;
+  }
+
+  .order-row > .order-total-value::before,
+  .order-row > .order-status-value::before,
+  .order-row > .payment-status-value::before {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .order-row > .order-total-value::before {
+    content: "Order total";
+  }
+
+  .order-row > .order-status-value::before {
+    content: "Order status";
+  }
+
+  .order-row > .payment-status-value::before {
+    content: "Payment status";
+  }
+
+  .order-row > .row-actions {
+    margin-top: 4px;
+    padding-top: 11px;
+    border-top: 1px solid var(--border);
+  }
+
+  .bg-orders .bg-chip,
+  .bg-orders .bg-track-line {
+    display: none;
+  }
+}

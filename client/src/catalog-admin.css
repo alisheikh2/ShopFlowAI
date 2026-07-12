@@ -1,0 +1,93 @@
+/* Shared admin/catalog refinements for mobile and desktop. */
+.profile-dropdown .profile-logout-btn {
+  margin-top: 4px;
+  border: 1px solid #fecdd3;
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+.profile-dropdown .profile-logout-btn:hover {
+  color: #b91c1c;
+  background: #ffe4e6;
+}
+
+.admin-field-label {
+  display: grid;
+  gap: 8px;
+  color: var(--navy);
+  font-weight: 900;
+}
+
+.admin-field-label > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.admin-field-label > span strong {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  font-size: 10px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.admin-field-label textarea {
+  min-height: 112px;
+}
+
+.admin-field-label small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.file-upload-field.required-upload {
+  border-color: rgba(15, 103, 245, .42);
+  background: linear-gradient(135deg, rgba(15,103,245,.06), rgba(109,40,233,.07));
+}
+
+.file-upload-field.required-upload span {
+  display: grid;
+  gap: 3px;
+}
+
+.file-upload-field.required-upload span small {
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.btn.danger-action {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316, #ef4444 58%, #dc2626);
+  box-shadow: 0 16px 34px rgba(239, 68, 68, .28);
+}
+
+.btn.danger-action:hover {
+  box-shadow: 0 20px 42px rgba(239, 68, 68, .36);
+}
+
+.admin-delete-dialog .danger-eyebrow {
+  margin: 0 0 7px;
+  color: #dc2626;
+}
+
+.admin-delete-dialog > p strong {
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .admin-field-label > span {
+    align-items: flex-start;
+  }
+}

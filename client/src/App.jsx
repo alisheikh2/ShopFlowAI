@@ -21,6 +21,11 @@ import { ResendVerification, ResetPassword, VerifyEmail } from './pages/AuthReco
 import PaymentRetry from './pages/PaymentRetry'
 import Placeholder from './pages/Placeholder'
 import './App.css'
+import './mobile.css'
+import './mobile-followup.css'
+import './mobile-nav-followup.css'
+import './mobile-ui-followup.css'
+import './catalog-admin.css'
 
 function App() {
   return (

@@ -135,9 +135,9 @@ export default function Orders() {
                   <strong>{order.invoiceNumber || order._id}</strong>
                   <p>{new Date(order.createdAt).toLocaleDateString('en-PK')}</p>
                 </div>
-                <strong>{formatCurrency(order.totalAmount)}</strong>
-                <StatusBadge tone={statusTone[order.orderStatus] || 'blue'}>{order.orderStatus}</StatusBadge>
-                <StatusBadge tone={order.paymentStatus === 'paid' ? 'green' : 'orange'}>{order.paymentStatus}</StatusBadge>
+                <strong className="order-total-value">{formatCurrency(order.totalAmount)}</strong>
+                <StatusBadge className="order-status-value" tone={statusTone[order.orderStatus] || 'blue'}>{order.orderStatus}</StatusBadge>
+                <StatusBadge className="payment-status-value" tone={order.paymentStatus === 'paid' ? 'green' : 'orange'}>{order.paymentStatus}</StatusBadge>
                 <div className="row-actions">
                   <Link className="icon-btn" to={`/order-success/${order._id}`}><Eye size={17} /></Link>
                   {(order.paymentMethod === 'cod' || order.paymentStatus === 'paid') && (

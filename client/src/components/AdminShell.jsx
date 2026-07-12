@@ -25,6 +25,17 @@ export default function AdminShell({ children }) {
           )
         })}
       </aside>
+      <nav className="admin-mobile-nav" aria-label="Admin navigation">
+        {adminLinks.map((link) => {
+          const Icon = link.icon
+          return (
+            <NavLink key={link.to} to={link.to} end>
+              <Icon size={17} />
+              <span>{link.label}</span>
+            </NavLink>
+          )
+        })}
+      </nav>
       <div className="admin-content">
         <div className="admin-bg-orb one" />
         <div className="admin-bg-orb two" />

@@ -50,6 +50,13 @@ const createProductValidation = [
     .isMongoId()
     .withMessage("Invalid category id"),
 
+  body("images").custom((_value, { req }) => {
+    if (!Array.isArray(req.files) || req.files.length === 0) {
+      throw new Error("Please upload at least one product image");
+    }
+    return true;
+  }),
+
   body("isFeatured")
     .optional()
     .isBoolean()

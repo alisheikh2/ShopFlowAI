@@ -1,0 +1,35 @@
+/* Mobile UI follow-up: product filter order and compact profile menu. */
+@media (max-width: 767px) {
+  /* Keep the profile popover inside the phone viewport. */
+  .profile-dropdown {
+    right: 0;
+    width: 190px;
+  }
+
+  /* Orders already has a dedicated bottom-nav entry on mobile. */
+  .profile-dropdown .profile-orders-link {
+    display: none;
+  }
+
+  /* Mobile filter flow: Search, then Newest/sort, then Apply. */
+  .product-search-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .product-search-toolbar .product-search-box {
+    grid-column: auto;
+    order: 1;
+  }
+
+  .product-search-toolbar .select-input {
+    width: 100%;
+    min-width: 0;
+    order: 2;
+  }
+
+  .product-search-toolbar .search-apply-btn {
+    width: 100%;
+    min-width: 0;
+    order: 3;
+  }
+}

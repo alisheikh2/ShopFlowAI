@@ -2,17 +2,22 @@
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AdminDeleteDialog from '../components/AdminDeleteDialog'
 import AdminShell from '../components/AdminShell'
 import { EmptyState, ErrorState } from '../components/LoadingState'
 import StatusBadge from '../components/StatusBadge'
+import { useToast } from '../contexts/ToastContext'
 import api from '../services/api'
 import { formatCurrency } from '../utils/format'
 import { getProductImageUrl } from '../utils/product'
 
 export default function AdminProducts() {
+  const { showToast } = useToast()
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [productPendingDelete, setProductPendingDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadProducts = async () => {
     try {
@@ -31,10 +36,20 @@ export default function AdminProducts() {
     loadProducts()
   }, [])
 
-  const deleteProduct = async (slug) => {
-    if (!confirm('Delete this product?')) return
-    await api.delete(`/products/${slug}`)
-    await loadProducts()
+  const deleteProduct = async () => {
+    if (!productPendingDelete) return
+
+    try {
+      setIsDeleting(true)
+      await api.delete(`/products/${productPendingDelete.slug}`)
+      showToast(`${productPendingDelete.name} was deleted successfully.`, 'success')
+      setProductPendingDelete(null)
+      await loadProducts()
+    } catch (requestError) {
+      showToast(requestError.message || 'Could not delete this product.', 'error')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -72,13 +87,30 @@ export default function AdminProducts() {
                 <StatusBadge tone={product.isPublished ? 'green' : 'orange'}>{product.isPublished ? 'Published' : 'Draft'}</StatusBadge>
                 <div className="row-actions">
                   <Link className="icon-btn" to={`/admin/products/${product.slug}/edit`}><Edit size={17} /></Link>
-                  <button className="icon-btn danger" onClick={() => deleteProduct(product.slug)}><Trash2 size={17} /></button>
+                  <button
+                    type="button"
+                    className="icon-btn danger"
+                    title={`Delete ${product.name}`}
+                    onClick={() => setProductPendingDelete(product)}
+                  >
+                    <Trash2 size={17} />
+                  </button>
                 </div>
               </div>
             )
           })}
         </div>
       )}
+
+      <AdminDeleteDialog
+        isOpen={Boolean(productPendingDelete)}
+        itemName={productPendingDelete?.name}
+        itemType="product"
+        description="Its catalog listing, wishlist references, reviews, and stored product images will be removed. This cannot be undone."
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setProductPendingDelete(null)}
+        onConfirm={deleteProduct}
+      />
     </AdminShell>
   )
 }

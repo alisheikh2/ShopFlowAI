@@ -84,6 +84,7 @@ test("reservation, webhook idempotency, cancellation and refund saga preserve st
   const category = await Category.create({
     name: "Commerce",
     slug: "commerce",
+    description: "A category used to verify the complete commerce lifecycle.",
     createdBy: user._id,
   });
   const product = await Product.create({
