@@ -2,6 +2,7 @@ import { Sparkles, Save } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AdminShell from '../components/AdminShell'
+import { useToast } from '../contexts/ToastContext'
 import api from '../services/api'
 
 const initialForm = {
@@ -21,12 +22,16 @@ export default function AdminProductForm() {
   const { slug } = useParams()
   const isEdit = Boolean(slug)
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [form, setForm] = useState(initialForm)
   const [categories, setCategories] = useState([])
   const [images, setImages] = useState([])
-  const [message, setMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [features, setFeatures] = useState('premium design, fast performance, reliable quality')
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  // Left empty by default — the admin should type in the product's own
+  // features instead of every product being pre-filled with the same
+  // placeholder text ("premium design, fast performance, reliable quality").
+  const [features, setFeatures] = useState('')
 
   const selectedCategoryName = useMemo(
     () => categories.find((category) => category._id === form.category)?.name || 'Technology',
@@ -56,10 +61,11 @@ export default function AdminProductForm() {
           })
         }
       } catch (error) {
-        setMessage(error.message)
+        showToast(error.message || 'Could not load product details', 'error')
       }
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, slug])
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }))
@@ -79,16 +85,16 @@ export default function AdminProductForm() {
     event.preventDefault()
     try {
       setIsSaving(true)
-      setMessage('')
       const payload = buildFormData()
       if (isEdit) {
         await api.put(`/products/${slug}`, payload)
       } else {
         await api.post('/products', payload)
       }
+      showToast(isEdit ? 'Product updated successfully' : 'Product created successfully', 'success')
       navigate('/admin/products')
     } catch (error) {
-      setMessage(error.message)
+      showToast(error.message || 'Could not save product', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -96,7 +102,8 @@ export default function AdminProductForm() {
 
   const generateDescription = async () => {
     try {
-      setMessage('Generating AI description...')
+      setIsGeneratingDescription(true)
+      showToast('Generating AI description...', 'info')
       const response = await api.post('/ai/generate-description', {
         name: form.name,
         category: selectedCategoryName,
@@ -105,9 +112,11 @@ export default function AdminProductForm() {
         features: features.split(',').map((item) => item.trim()).filter(Boolean),
       })
       update('description', response.data?.description || '')
-      setMessage('AI description generated successfully.')
+      showToast('AI description generated successfully', 'success')
     } catch (error) {
-      setMessage(error.message)
+      showToast(error.message || 'Could not generate description', 'error')
+    } finally {
+      setIsGeneratingDescription(false)
     }
   }
 
@@ -145,10 +154,11 @@ export default function AdminProductForm() {
         <div className="admin-form-actions">
           <label><input type="checkbox" checked={form.isFeatured} onChange={(event) => update('isFeatured', event.target.checked)} /> Featured</label>
           <label><input type="checkbox" checked={form.isPublished} onChange={(event) => update('isPublished', event.target.checked)} /> Published</label>
-          <button type="button" className="btn ghost" onClick={generateDescription}><Sparkles size={18} /> Generate Description</button>
+          <button type="button" className="btn ghost" onClick={generateDescription} disabled={isGeneratingDescription}>
+            <Sparkles size={18} className={isGeneratingDescription ? 'spin-icon' : ''} /> {isGeneratingDescription ? 'Generating...' : 'Generate Description'}
+          </button>
           <button className="btn primary" disabled={isSaving}><Save size={18} /> {isSaving ? 'Saving...' : 'Save Product'}</button>
         </div>
-        {message && <p className="inline-message large-message">{message}</p>}
       </form>
     </AdminShell>
   )

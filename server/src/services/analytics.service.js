@@ -217,13 +217,18 @@ const getDailyRevenue = async ({
 };
 
 // ---------- Category Breakdown ----------
+// Prefer the category name captured on the order item at purchase time
+// (categorySnapshot). This keeps revenue correctly attributed even if a
+// product/category is later edited or deleted. Older orders placed before
+// categorySnapshot existed fall back to a live product/category lookup, and
+// only genuinely un-linkable items land in "Uncategorized".
 const getCategoryBreakdown = async () => {
   return await Order.aggregate([
     { $match: { paymentStatus: "paid" } },
     { $unwind: "$items" },
     {
       $lookup: {
-        from: "products", // adjust if your collection name differs
+        from: "products",
         localField: "items.product",
         foreignField: "_id",
         as: "productInfo",
@@ -232,7 +237,7 @@ const getCategoryBreakdown = async () => {
     { $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
-        from: "categories", // adjust if your collection name differs
+        from: "categories",
         localField: "productInfo.category",
         foreignField: "_id",
         as: "categoryInfo",
@@ -240,8 +245,24 @@ const getCategoryBreakdown = async () => {
     },
     { $unwind: { path: "$categoryInfo", preserveNullAndEmptyArrays: true } },
     {
+      $addFields: {
+        resolvedCategory: {
+          $cond: [
+            {
+              $and: [
+                { $ne: ["$items.categorySnapshot", null] },
+                { $ne: ["$items.categorySnapshot", ""] },
+              ],
+            },
+            "$items.categorySnapshot",
+            { $ifNull: ["$categoryInfo.name", "Uncategorized"] },
+          ],
+        },
+      },
+    },
+    {
       $group: {
-        _id: { $ifNull: ["$categoryInfo.name", "Uncategorized"] },
+        _id: "$resolvedCategory",
         totalQuantitySold: { $sum: "$items.quantity" },
         totalRevenue: {
           $sum: { $multiply: ["$items.priceSnapshot", "$items.quantity"] },

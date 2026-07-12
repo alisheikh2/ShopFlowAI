@@ -137,7 +137,9 @@ const createOrder = async (userId, data) => {
           );
         }
 
-        const product = await Product.findById(item.product._id).session(session);
+        const product = await Product.findById(item.product._id)
+          .populate("category", "name")
+          .session(session);
         if (!product) {
           throw new ApiError(400, `${item.product.name} is no longer available`);
         }
@@ -159,6 +161,7 @@ const createOrder = async (userId, data) => {
           nameSnapshot: product.name,
           skuSnapshot: getProductSku(product),
           imageSnapshot: product.images.length > 0 ? product.images[0].url : "",
+          categorySnapshot: product.category?.name || "",
           priceSnapshot: price,
           quantity: item.quantity,
           taxSnapshot: lineTax,
@@ -386,11 +389,20 @@ const updateOrderStatus = async (orderId, orderStatus, requestedBy) => {
   await invalidateCacheGroups(["products", "analytics"]);
   const updatedOrder = await populateOrder(Order.findById(updatedOrderId));
 
+  // The status change is already committed to the database at this point, so
+  // the admin/customer facing response should return immediately. The email
+  // notification is sent in the background (fire-and-forget) instead of being
+  // awaited here — previously this could add 10-20s to the request because
+  // the API response waited on the email provider before responding.
   if (updatedOrder?.user?.email) {
-    await emailNotificationService.sendOrderStatusUpdateEmail(
-      updatedOrder,
-      orderStatus,
-    );
+    emailNotificationService
+      .sendOrderStatusUpdateEmail(updatedOrder, orderStatus)
+      .catch((error) => {
+        console.error(
+          `Failed to send order status update email for order ${updatedOrder._id}:`,
+          error,
+        );
+      });
   }
 
   return updatedOrder;

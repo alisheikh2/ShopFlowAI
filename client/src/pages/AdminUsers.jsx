@@ -21,6 +21,7 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyUserId, setBusyUserId] = useState(null)
+  const [userPendingBanAction, setUserPendingBanAction] = useState(null)
 
   const loadUsers = async () => {
     try {
@@ -67,19 +68,20 @@ export default function AdminUsers() {
     }
   }
 
-  const toggleBan = async (targetUser) => {
+  const toggleBan = (targetUser) => {
+    setUserPendingBanAction(targetUser)
+  }
+
+  const confirmBanAction = async () => {
+    if (!userPendingBanAction) return
+    const targetUser = userPendingBanAction
     const nextBanned = !targetUser.isBanned
-    const confirmed = window.confirm(
-      nextBanned
-        ? `Ban ${targetUser.name}? They will be signed out of every device immediately.`
-        : `Unban ${targetUser.name}?`,
-    )
-    if (!confirmed) return
 
     try {
       setBusyUserId(targetUser._id)
+      setUserPendingBanAction(null)
       await api.patch(`/users/admin/${targetUser._id}/ban`, { isBanned: nextBanned })
-      showToast(nextBanned ? 'User banned' : 'User unbanned', 'success')
+      showToast(nextBanned ? `${targetUser.name} has been banned` : `${targetUser.name} has been unbanned`, 'success')
       await loadUsers()
     } catch (err) {
       showToast(err.message || 'Could not update ban status', 'error')
@@ -171,6 +173,28 @@ export default function AdminUsers() {
           <div>
             <button className="btn ghost" disabled={!pagination.hasPrevPage} onClick={() => setPage((p) => p - 1)}>Previous</button>
             <button className="btn ghost" disabled={!pagination.hasNextPage} onClick={() => setPage((p) => p + 1)}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {userPendingBanAction && (
+        <div className="logout-confirm-backdrop" onClick={() => setUserPendingBanAction(null)}>
+          <div className="logout-confirm-card" role="dialog" aria-modal="true" aria-label="Confirm account status change" onClick={(event) => event.stopPropagation()}>
+            <div className={`logout-confirm-icon ${userPendingBanAction.isBanned ? '' : 'danger'}`}>
+              {userPendingBanAction.isBanned ? <ShieldCheck size={22} /> : <Ban size={22} />}
+            </div>
+            <h3>{userPendingBanAction.isBanned ? 'Unban this user?' : 'Ban this user?'}</h3>
+            <p>
+              {userPendingBanAction.isBanned
+                ? <>Restore access for <strong>{userPendingBanAction.name}</strong>. They will be able to sign in and use their account again.</>
+                : <>This will immediately sign <strong>{userPendingBanAction.name}</strong> out of every device and block them from signing in until unbanned.</>}
+            </p>
+            <div className="logout-confirm-actions">
+              <button className="btn ghost" onClick={() => setUserPendingBanAction(null)}>Cancel</button>
+              <button className="btn primary" onClick={confirmBanAction} disabled={busyUserId === userPendingBanAction._id}>
+                {busyUserId === userPendingBanAction._id ? 'Please wait...' : userPendingBanAction.isBanned ? 'Yes, Unban User' : 'Yes, Ban User'}
+              </button>
+            </div>
           </div>
         </div>
       )}

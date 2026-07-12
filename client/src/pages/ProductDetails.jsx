@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Heart, ShieldAlert, ShoppingBag, Star } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Heart, Pencil, ShieldAlert, ShoppingBag, Star, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { ErrorState } from '../components/LoadingState'
+import ImageSlideshow from '../components/ImageSlideshow'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
@@ -14,7 +15,7 @@ import { normalizeProduct } from '../utils/product'
 export default function ProductDetails() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { isAdmin, isAuthenticated } = useAuth()
+  const { isAdmin, isAuthenticated, user } = useAuth()
   const { addToCart } = useCart()
   const { isWishlisted, toggleWishlist } = useWishlist()
   const [product, setProduct] = useState(null)
@@ -24,10 +25,18 @@ export default function ProductDetails() {
   const [hoverRating, setHoverRating] = useState(0)
   const [reviewMessage, setReviewMessage] = useState('')
   const [reviewMessageType, setReviewMessageType] = useState('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+  const [reviewPendingDelete, setReviewPendingDelete] = useState(null)
+  const [isDeletingReview, setIsDeletingReview] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [message, setMessage] = useState('')
+
+  const myReview = useMemo(
+    () => reviews.find((review) => review.user?._id === user?._id) || null,
+    [reviews, user?._id],
+  )
 
   const loadProduct = async () => {
     try {
@@ -83,6 +92,18 @@ export default function ProductDetails() {
     }
   }
 
+  // When the signed-in user already has a review on this product, load it
+  // into the form so "Write a review" becomes "Edit your review" instead of
+  // silently failing with a duplicate-review error on submit.
+  useEffect(() => {
+    if (myReview) {
+      setReviewForm({ rating: myReview.rating, comment: myReview.comment || '' })
+    } else {
+      setReviewForm({ rating: 0, comment: '' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myReview?._id])
+
   const submitReview = async (event) => {
     event.preventDefault()
     try {
@@ -97,14 +118,23 @@ export default function ProductDetails() {
         setReviewMessageType('error')
         return
       }
-      await api.post('/reviews', {
-        productId: product._id,
-        rating: Number(reviewForm.rating),
-        comment: reviewForm.comment,
-      })
-      setReviewForm({ rating: 0, comment: '' })
-      await loadProduct()
-      setReviewMessage('Thanks for the feedback! Your review is now live.')
+      setIsSubmittingReview(true)
+      if (myReview) {
+        await api.put(`/reviews/${myReview._id}`, {
+          rating: Number(reviewForm.rating),
+          comment: reviewForm.comment,
+        })
+        await loadProduct()
+        setReviewMessage('Your review has been updated.')
+      } else {
+        await api.post('/reviews', {
+          productId: product._id,
+          rating: Number(reviewForm.rating),
+          comment: reviewForm.comment,
+        })
+        await loadProduct()
+        setReviewMessage('Thanks for the feedback! Your review is now live.')
+      }
       setReviewMessageType('success')
     } catch (err) {
       const isUnverifiedPurchase = err.message?.toLowerCase().includes('purchased')
@@ -114,6 +144,25 @@ export default function ProductDetails() {
           : err.message || 'Something went wrong. Please try again.',
       )
       setReviewMessageType(isUnverifiedPurchase ? 'locked' : 'error')
+    } finally {
+      setIsSubmittingReview(false)
+    }
+  }
+
+  const deleteMyReview = async () => {
+    if (!reviewPendingDelete) return
+    try {
+      setIsDeletingReview(true)
+      await api.delete(`/reviews/${reviewPendingDelete._id}`)
+      setReviewPendingDelete(null)
+      await loadProduct()
+      setReviewMessage('Your review has been deleted.')
+      setReviewMessageType('success')
+    } catch (err) {
+      setReviewMessage(err.message || 'Could not delete review')
+      setReviewMessageType('error')
+    } finally {
+      setIsDeletingReview(false)
     }
   }
 
@@ -146,8 +195,8 @@ export default function ProductDetails() {
       <div className="breadcrumbs"><Link to="/products">Products</Link> / {item.displayName}</div>
       <div className="product-detail-grid">
         <div className="product-detail-media hover-tilt">
-          {item.displayImageUrl ? (
-            <img className="detail-image" src={item.displayImageUrl} alt={item.displayName} />
+          {Array.isArray(item.images) && item.images.length > 0 ? (
+            <ImageSlideshow images={item.images} alt={item.displayName} />
           ) : (
             <span className="detail-emoji">{item.displayEmoji}</span>
           )}
@@ -209,7 +258,7 @@ export default function ProductDetails() {
         <div className="reviews-grid">
           {!isAdmin && (
             <form className="review-form glass-card" onSubmit={submitReview}>
-              <h3>Write a review</h3>
+              <h3>{myReview ? 'Edit your review' : 'Write a review'}</h3>
               <div className="star-picker" role="radiogroup" aria-label="Rating">
                 {[1, 2, 3, 4, 5].map((starValue) => (
                   <button
@@ -232,7 +281,21 @@ export default function ProductDetails() {
                 <span className="star-picker-label">{reviewForm.rating ? `${reviewForm.rating} out of 5` : 'Select a rating'}</span>
               </div>
               <textarea placeholder="Share your experience" value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} required />
-              <button className="btn primary">Submit Review</button>
+              <div className="review-form-actions">
+                <button className="btn primary" disabled={isSubmittingReview}>
+                  {isSubmittingReview ? 'Saving...' : myReview ? 'Update Review' : 'Submit Review'}
+                </button>
+                {myReview && (
+                  <button
+                    type="button"
+                    className="btn ghost danger"
+                    onClick={() => setReviewPendingDelete(myReview)}
+                    disabled={isSubmittingReview}
+                  >
+                    <Trash2 size={16} /> Delete
+                  </button>
+                )}
+              </div>
               <p className="hint">Only delivered purchases can be reviewed.</p>
               {reviewMessage && (
                 <div className={`review-feedback ${reviewMessageType}`}>
@@ -249,25 +312,69 @@ export default function ProductDetails() {
           )}
           <div className="review-list">
             {reviews.length === 0 && <div className="glass-card empty-review">No Reviews Yet</div>}
-            {reviews.map((review) => (
-              <article className="review-card glass-card" key={review._id}>
-                <div className="rating-row">
-                  {[1, 2, 3, 4, 5].map((starValue) => (
-                    <Star
-                      key={starValue}
-                      size={15}
-                      className={review.rating >= starValue ? 'star-filled' : 'star-empty'}
-                      fill={review.rating >= starValue ? 'currentColor' : 'none'}
-                    />
-                  ))}
-                </div>
-                <p>{review.comment}</p>
-                <strong>{review.user?.name || 'Customer'}</strong>
-              </article>
-            ))}
+            {reviews.map((review) => {
+              const isOwnReview = review.user?._id === user?._id
+              const canManage = isOwnReview || isAdmin
+              return (
+                <article className="review-card glass-card" key={review._id}>
+                  <div className="review-card-head">
+                    <div className="rating-row">
+                      {[1, 2, 3, 4, 5].map((starValue) => (
+                        <Star
+                          key={starValue}
+                          size={15}
+                          className={review.rating >= starValue ? 'star-filled' : 'star-empty'}
+                          fill={review.rating >= starValue ? 'currentColor' : 'none'}
+                        />
+                      ))}
+                    </div>
+                    {canManage && (
+                      <div className="review-card-actions">
+                        {isOwnReview && (
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title="Edit your review"
+                            onClick={() => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="icon-btn danger"
+                          title={isOwnReview ? 'Delete your review' : 'Delete review (admin)'}
+                          onClick={() => setReviewPendingDelete(review)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p>{review.comment}</p>
+                  <strong>{review.user?.name || 'Customer'}{isOwnReview && <span className="own-review-badge">You</span>}</strong>
+                </article>
+              )
+            })}
           </div>
         </div>
       </div>
+
+      {reviewPendingDelete && (
+        <div className="logout-confirm-backdrop" onClick={() => setReviewPendingDelete(null)}>
+          <div className="logout-confirm-card" role="dialog" aria-modal="true" aria-label="Confirm delete review" onClick={(event) => event.stopPropagation()}>
+            <div className="logout-confirm-icon danger"><Trash2 size={22} /></div>
+            <h3>Delete this review?</h3>
+            <p>This action can't be undone, and the product's average rating will be recalculated.</p>
+            <div className="logout-confirm-actions">
+              <button className="btn ghost" onClick={() => setReviewPendingDelete(null)}>Cancel</button>
+              <button className="btn primary" onClick={deleteMyReview} disabled={isDeletingReview}>
+                {isDeletingReview ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

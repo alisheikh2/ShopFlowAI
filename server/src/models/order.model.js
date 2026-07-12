@@ -24,6 +24,15 @@ const orderItemSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Category name captured at the time of purchase so revenue can still be
+    // attributed correctly in analytics even if the product/category is later
+    // edited or deleted (this used to fall back to "Uncategorized").
+    categorySnapshot: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     priceSnapshot: {
       type: Number,
       required: true,
