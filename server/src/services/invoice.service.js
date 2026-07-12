@@ -87,9 +87,6 @@ const getSku = (item) => {
   return productId ? `SKU-${productId.toString().slice(-8).toUpperCase()}` : "N/A";
 };
 
-const getItemDescription = (item) =>
-  item.product?.description || item.nameSnapshot || item.product?.name || "Product";
-
 const addLogo = (doc, x, y) => {
   if (fs.existsSync(SHOPFLOWAI_LOGO_PATH)) {
     doc.image(SHOPFLOWAI_LOGO_PATH, x, y, {
@@ -201,17 +198,12 @@ const drawTableHeader = (doc, y) => {
 
 const drawLineItem = (doc, item, y, index) => {
   const x = 40;
-  const description = getItemDescription(item);
   const productName = item.nameSnapshot || item.product?.name || "Product";
   const lineSubtotal = Number(item.priceSnapshot || 0) * Number(item.quantity || 0);
   const itemTax = Number(item.taxSnapshot || 0);
   const lineTotal = lineSubtotal + itemTax;
 
-  const descriptionHeight = doc
-    .font("Helvetica")
-    .fontSize(8)
-    .heightOfString(description, { width: 170 });
-  const rowHeight = Math.max(38, descriptionHeight + 22);
+  const rowHeight = 34;
   y = ensureTableSpace(doc, y, rowHeight);
 
   if (index % 2 === 0) {
@@ -224,12 +216,7 @@ const drawLineItem = (doc, item, y, index) => {
     .fillColor(COLORS.navy)
     .font("Helvetica-Bold")
     .fontSize(8.4)
-    .text(productName, x + 8, y + 6, { width: 170 });
-  doc
-    .fillColor(COLORS.slate)
-    .font("Helvetica")
-    .fontSize(7.5)
-    .text(description, x + 8, y + 18, { width: 170, lineGap: 1 });
+    .text(productName, x + 8, y + 13, { width: 170 });
 
   doc.fillColor(COLORS.navy).font("Helvetica").fontSize(8);
   doc.text(getSku(item), x + 188, y + 10, { width: 70 });

@@ -116,7 +116,8 @@ export default function Checkout() {
   return (
     <section className="container page-section">
       <p className="eyebrow gradient-text">Checkout</p>
-      <h1>Complete your order</h1>
+      <h1 className="page-title">Complete your order</h1>
+      <p className="page-subtitle">Your payment is protected by Stripe — we never see or store your card details.</p>
       <div className="checkout-grid">
         <div className="form-stack">
           <div className="form-card">

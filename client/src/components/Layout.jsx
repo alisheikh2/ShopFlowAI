@@ -103,11 +103,11 @@ function Header() {
             )}
           </div>
         ) : (
-          <Link className="profile-trigger login-trigger" to="/login" aria-label="Account">
+          <Link className="profile-trigger login-trigger" to="/login" aria-label="Login or Sign up">
             <span><UserRound size={18} /></span>
             <div>
-              <small>Account</small>
-              <strong>Login</strong>
+              <small>Login</small>
+              <strong>SignUp</strong>
             </div>
           </Link>
         )}

@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import SectionHeader from '../components/SectionHeader'
+import Reveal from '../components/Reveal'
 import { EmptyState, ErrorState } from '../components/LoadingState'
 import { featuredCategories } from '../data/mockData'
 
@@ -61,11 +62,11 @@ export default function Categories() {
           {categories.map((category, index) => {
             const fallback = categoryMeta[category.slug] || featuredCategories[index % featuredCategories.length]
             return (
-              <Link to={`/categories/${category.slug}`} className={`category-card ${fallback.gradient}`} key={category._id}>
+              <Reveal key={category._id} delay={(index % 8) * 70} as={Link} to={`/categories/${category.slug}`} className={`category-card ${fallback.gradient}`}>
                 <span>{fallback.icon}</span>
                 <h3>{category.name}</h3>
-                <p>{category.description || 'Explore curated ShopFlowAI products'}</p>
-              </Link>
+                <p>{category.description || `Hand-picked ${category.name.toLowerCase()}, chosen for quality and everyday value.`}</p>
+              </Reveal>
             )
           })}
         </div>

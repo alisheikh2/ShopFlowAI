@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Heart, ShoppingBag, Star } from 'lucide-react'
+import { Heart, ShieldAlert, ShoppingBag, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ErrorState } from '../components/LoadingState'
 import StatusBadge from '../components/StatusBadge'
@@ -21,6 +21,9 @@ export default function ProductDetails() {
   const [reviews, setReviews] = useState([])
   const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, totalReviews: 0 })
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [hoverRating, setHoverRating] = useState(0)
+  const [reviewMessage, setReviewMessage] = useState('')
+  const [reviewMessageType, setReviewMessageType] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -87,6 +90,8 @@ export default function ProductDetails() {
         navigate('/login')
         return
       }
+      setReviewMessage('')
+      setReviewMessageType('')
       await api.post('/reviews', {
         productId: product._id,
         rating: Number(reviewForm.rating),
@@ -94,9 +99,16 @@ export default function ProductDetails() {
       })
       setReviewForm({ rating: 5, comment: '' })
       await loadProduct()
-      setMessage('Review submitted successfully.')
+      setReviewMessage('Thanks for the feedback! Your review is now live.')
+      setReviewMessageType('success')
     } catch (err) {
-      setMessage(err.message)
+      const isUnverifiedPurchase = err.message?.toLowerCase().includes('purchased')
+      setReviewMessage(
+        isUnverifiedPurchase
+          ? "You haven't purchased this product yet"
+          : err.message || 'Something went wrong. Please try again.',
+      )
+      setReviewMessageType(isUnverifiedPurchase ? 'locked' : 'error')
     }
   }
 
@@ -193,19 +205,57 @@ export default function ProductDetails() {
           {!isAdmin && (
             <form className="review-form glass-card" onSubmit={submitReview}>
               <h3>Write a review</h3>
-              <select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: event.target.value }))}>
-                {[5, 4, 3, 2, 1].map((rating) => <option value={rating} key={rating}>{rating} stars</option>)}
-              </select>
+              <div className="star-picker" role="radiogroup" aria-label="Rating">
+                {[1, 2, 3, 4, 5].map((starValue) => (
+                  <button
+                    type="button"
+                    key={starValue}
+                    className="star-picker-btn"
+                    aria-label={`${starValue} star${starValue > 1 ? 's' : ''}`}
+                    aria-pressed={reviewForm.rating === starValue}
+                    onMouseEnter={() => setHoverRating(starValue)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setReviewForm((current) => ({ ...current, rating: starValue }))}
+                  >
+                    <Star
+                      size={26}
+                      className={(hoverRating || reviewForm.rating) >= starValue ? 'star-filled' : 'star-empty'}
+                      fill={(hoverRating || reviewForm.rating) >= starValue ? 'currentColor' : 'none'}
+                    />
+                  </button>
+                ))}
+                <span className="star-picker-label">{reviewForm.rating} out of 5</span>
+              </div>
               <textarea placeholder="Share your experience" value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} required />
               <button className="btn primary">Submit Review</button>
               <p className="hint">Only delivered purchases can be reviewed.</p>
+              {reviewMessage && (
+                <div className={`review-feedback ${reviewMessageType}`}>
+                  {reviewMessageType === 'locked' && <ShieldAlert size={18} />}
+                  <div>
+                    <strong>
+                      {reviewMessageType === 'locked' ? "Verified purchase required" : reviewMessageType === 'success' ? 'Review posted' : 'Could not submit review'}
+                    </strong>
+                    <p>{reviewMessage}</p>
+                  </div>
+                </div>
+              )}
             </form>
           )}
           <div className="review-list">
             {reviews.length === 0 && <div className="glass-card empty-review">No Reviews Yet</div>}
             {reviews.map((review) => (
               <article className="review-card glass-card" key={review._id}>
-                <div className="rating-row"><Star size={16} fill="currentColor" /> {review.rating}</div>
+                <div className="rating-row">
+                  {[1, 2, 3, 4, 5].map((starValue) => (
+                    <Star
+                      key={starValue}
+                      size={15}
+                      className={review.rating >= starValue ? 'star-filled' : 'star-empty'}
+                      fill={review.rating >= starValue ? 'currentColor' : 'none'}
+                    />
+                  ))}
+                </div>
                 <p>{review.comment}</p>
                 <strong>{review.user?.name || 'Customer'}</strong>
               </article>

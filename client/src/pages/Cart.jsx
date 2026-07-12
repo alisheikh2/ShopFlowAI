@@ -19,6 +19,7 @@ export default function Cart() {
         <div>
           <p className="eyebrow gradient-text">Cart</p>
           <h1 className="page-title">Your shopping cart</h1>
+          <p className="page-subtitle">Review your picks, adjust quantities, and check out securely when you're ready.</p>
 
           {isCartLoading && <div className="glass-card cart-loading skeleton" />}
           {!isCartLoading && cartError && <p className="form-error">{cartError}</p>}

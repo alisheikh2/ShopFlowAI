@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
+import Reveal from '../components/Reveal'
 import { EmptyState, ProductGridSkeleton } from '../components/LoadingState'
 import { useAuth } from '../contexts/AuthContext'
 import { useWishlist } from '../contexts/WishlistContext'
@@ -12,6 +13,7 @@ export default function Wishlist() {
     <section className="container page-section">
       <p className="eyebrow gradient-text">Wishlist</p>
       <h1 className="page-title">Saved products</h1>
+      <p className="page-subtitle">Keep an eye on the pieces you love — prices and stock update here in real time.</p>
 
       {isAuthLoading || isWishlistLoading ? <ProductGridSkeleton count={4} /> : null}
       {!isAuthLoading && !isAuthenticated && (
@@ -30,7 +32,11 @@ export default function Wishlist() {
       )}
       {isAuthenticated && !isWishlistLoading && wishlist.length > 0 && (
         <div className="product-grid with-top-space">
-          {wishlist.map((product) => <ProductCard key={product._id || product.id} product={product} />)}
+          {wishlist.map((product, index) => (
+            <Reveal key={product._id || product.id} delay={(index % 8) * 70}>
+              <ProductCard product={product} />
+            </Reveal>
+          ))}
         </div>
       )}
     </section>

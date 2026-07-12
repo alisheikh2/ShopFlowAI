@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
+import Reveal from '../components/Reveal'
 import SectionHeader from '../components/SectionHeader'
 import { EmptyState, ErrorState, ProductGridSkeleton } from '../components/LoadingState'
 import api from '../services/api'
@@ -126,7 +127,11 @@ export default function Products() {
       {!isLoading && !error && products.length > 0 && (
         <>
           <div className="product-grid with-top-space">
-            {products.map((product) => <ProductCard key={product._id} product={product} />)}
+            {products.map((product, index) => (
+              <Reveal key={product._id} delay={(index % 8) * 70}>
+                <ProductCard product={product} />
+              </Reveal>
+            ))}
           </div>
           {pagination && (
             <div className="pagination-row">

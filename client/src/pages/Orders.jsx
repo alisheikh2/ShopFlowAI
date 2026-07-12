@@ -104,6 +104,7 @@ export default function Orders() {
     <section className="container page-section">
       <p className="eyebrow gradient-text">Account</p>
       <h1 className="page-title">My orders</h1>
+      <p className="page-subtitle">Track deliveries, download invoices, and manage payments for every order you've placed.</p>
 
       {isAuthLoading && <div className="table-card order-table-skeleton skeleton" />}
       {!isAuthLoading && isAdmin && (

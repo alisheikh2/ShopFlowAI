@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ProductCard from '../components/ProductCard'
+import Reveal from '../components/Reveal'
 import SectionHeader from '../components/SectionHeader'
 import { EmptyState, ErrorState, ProductGridSkeleton } from '../components/LoadingState'
 import api from '../services/api'
@@ -128,7 +129,7 @@ export default function Home() {
           title="Built for a modern buying journey"
           description="ShopFlowAI combines a premium storefront, reliable checkout, order notifications, and professional invoicing in one customer-friendly flow."
         />
-        <div className="experience-grid-3d">
+        <Reveal as="div" className="experience-grid-3d">
           {experienceCards.map((item, index) => {
             const Icon = item.icon
             return (
@@ -140,7 +141,7 @@ export default function Home() {
               </article>
             )
           })}
-        </div>
+        </Reveal>
       </section>
 
       <section className="container section">
@@ -157,7 +158,11 @@ export default function Home() {
         )}
         {!isLoading && !error && products.length > 0 && (
           <div className="product-grid">
-            {products.slice(0, 4).map((product) => <ProductCard key={product._id || product.id} product={product} />)}
+            {products.slice(0, 4).map((product, index) => (
+              <Reveal key={product._id || product.id} delay={index * 90}>
+                <ProductCard product={product} />
+              </Reveal>
+            ))}
           </div>
         )}
       </section>
@@ -173,7 +178,7 @@ export default function Home() {
             </p>
             <Link className="btn primary" to="/products">Explore the store <ArrowRight size={18} /></Link>
           </div>
-          <div className="journey-steps">
+          <Reveal as="div" className="journey-steps">
             {journeySteps.map((step, index) => {
               const Icon = step.icon
               return (
@@ -186,7 +191,7 @@ export default function Home() {
                 </div>
               )
             })}
-          </div>
+          </Reveal>
         </div>
       </section>
     </>

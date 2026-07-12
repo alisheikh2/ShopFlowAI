@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, User } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../services/api'
@@ -172,7 +172,12 @@ function AuthCard({ type }) {
       <form className="auth-card enhanced-card" onSubmit={submit}>
         <p className="eyebrow gradient-text">{isRegister ? 'Create account' : 'Login'}</p>
         <h2>{isRegister ? 'Start shopping smarter' : 'Access your account'}</h2>
-        {isRegister && <input placeholder="Full name" value={form.name} onChange={(event) => update('name', event.target.value)} required />}
+        {isRegister && (
+          <label className="input-with-icon">
+            <User size={18} />
+            <input placeholder="Full name" value={form.name} onChange={(event) => update('name', event.target.value)} required />
+          </label>
+        )}
         <label className="input-with-icon">
           <Mail size={18} />
           <input placeholder="Email address" type="email" value={form.email} onChange={(event) => update('email', event.target.value)} required />
