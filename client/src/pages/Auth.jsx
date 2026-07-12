@@ -5,6 +5,11 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
+// Letters (incl. accented/Unicode), spaces, apostrophes, hyphens and periods only — no digits or symbols.
+const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*$/u
+
+const sanitizeNameInput = (value = '') => value.replace(/[^\p{L}\s'.-]/gu, '')
+
 const friendlyAuthError = (message = '') => {
   const lower = message.toLowerCase()
   if (lower.includes('verify')) {
@@ -121,7 +126,15 @@ function AuthCard({ type }) {
       setIsSubmitting(true)
       setMessage('')
       if (isRegister) {
-        const response = await register(form)
+        const trimmedName = form.name.trim()
+        if (!trimmedName || !NAME_PATTERN.test(trimmedName)) {
+          const friendly = 'Please enter a valid name using letters only (no numbers or symbols).'
+          setMessageType('error')
+          setMessage(friendly)
+          showToast(friendly, 'error')
+          return
+        }
+        const response = await register({ ...form, name: trimmedName })
         setMessageType('success')
         const successMessage = response.message || 'Registration successful. Please verify your email.'
         setMessage(successMessage)
@@ -175,7 +188,14 @@ function AuthCard({ type }) {
         {isRegister && (
           <label className="input-with-icon">
             <User size={18} />
-            <input placeholder="Full name" value={form.name} onChange={(event) => update('name', event.target.value)} required />
+            <input
+              placeholder="Full name"
+              value={form.name}
+              onChange={(event) => update('name', sanitizeNameInput(event.target.value))}
+              pattern="^[A-Za-z\u00C0-\u024F\u0600-\u06FF][A-Za-z\u00C0-\u024F\u0600-\u06FF\s'.-]*$"
+              title="Name should contain letters only (no numbers or symbols)"
+              required
+            />
           </label>
         )}
         <label className="input-with-icon">

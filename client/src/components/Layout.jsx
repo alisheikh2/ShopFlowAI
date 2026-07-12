@@ -163,7 +163,6 @@ function Footer() {
 
       <div className="footer-column">
         <h3>Features</h3>
-        <Link to="/login">Customer Login</Link>
         <Link to="/wishlist">Wishlist</Link>
         <Link to="/account/orders">Order Tracking</Link>
         <Link to="/cart">Shopping Cart</Link>

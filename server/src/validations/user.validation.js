@@ -5,7 +5,9 @@ const registerValidation = [
   body("name")
     .trim()
     .notEmpty()
-    .withMessage("Name is required"),
+    .withMessage("Name is required")
+    .matches(/^[\p{L}][\p{L}\s'.-]*$/u)
+    .withMessage("Name must contain letters only (no numbers or symbols)"),
 
   body("email")
     .trim()

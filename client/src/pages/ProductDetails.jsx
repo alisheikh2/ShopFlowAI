@@ -20,7 +20,7 @@ export default function ProductDetails() {
   const [product, setProduct] = useState(null)
   const [reviews, setReviews] = useState([])
   const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, totalReviews: 0 })
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' })
   const [hoverRating, setHoverRating] = useState(0)
   const [reviewMessage, setReviewMessage] = useState('')
   const [reviewMessageType, setReviewMessageType] = useState('')
@@ -92,12 +92,17 @@ export default function ProductDetails() {
       }
       setReviewMessage('')
       setReviewMessageType('')
+      if (!reviewForm.rating) {
+        setReviewMessage('Please select a star rating before submitting your review.')
+        setReviewMessageType('error')
+        return
+      }
       await api.post('/reviews', {
         productId: product._id,
         rating: Number(reviewForm.rating),
         comment: reviewForm.comment,
       })
-      setReviewForm({ rating: 5, comment: '' })
+      setReviewForm({ rating: 0, comment: '' })
       await loadProduct()
       setReviewMessage('Thanks for the feedback! Your review is now live.')
       setReviewMessageType('success')
@@ -224,7 +229,7 @@ export default function ProductDetails() {
                     />
                   </button>
                 ))}
-                <span className="star-picker-label">{reviewForm.rating} out of 5</span>
+                <span className="star-picker-label">{reviewForm.rating ? `${reviewForm.rating} out of 5` : 'Select a rating'}</span>
               </div>
               <textarea placeholder="Share your experience" value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} required />
               <button className="btn primary">Submit Review</button>
