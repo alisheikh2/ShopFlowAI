@@ -91,7 +91,7 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-Fill in your MongoDB, JWT, SMTP, Stripe, Cloudinary, Gemini, and Firebase credentials. **Never commit `.env` or Firebase service-account JSON.**
+Fill in your MongoDB, JWT, Resend, Stripe, Cloudinary, Gemini, and Firebase credentials. **Never commit `.env` or Firebase service-account JSON.**
 
 ### 3. Install & run
 

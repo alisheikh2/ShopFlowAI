@@ -1,10 +1,8 @@
 require("../test-support/testEnv");
 process.env.CLIENT_URL = "http://allowed.test";
 process.env.PUBLIC_CLIENT_URL = "http://allowed.test";
-process.env.SMTP_HOST = "127.0.0.1";
-process.env.SMTP_PORT = "1";
-process.env.SMTP_USER = "test";
-process.env.SMTP_PASS = "test";
+process.env.RESEND_API_KEY = "re_test_fake_key";
+process.env.EMAIL_FROM = "onboarding@resend.dev";
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");

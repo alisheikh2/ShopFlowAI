@@ -1,29 +1,32 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  // Render's outbound network doesn't reliably support IPv6, and Gmail's
-  // SMTP host resolves an AAAA (IPv6) record that then fails with
-  // ENETUNREACH. Forcing IPv4 avoids that and prevents the ~2 minute
-  // connection timeout blocking the request.
-  family: 4,
-});
+// Resend sends over HTTPS (the Resend API), not raw SMTP. This matters
+// because many hosting platforms — Render's free tier included — block or
+// unreliably route outbound SMTP (ports 25/465/587), which caused emails to
+// fail with "Connection timeout" no matter how the SMTP transport was
+// configured. HTTPS to api.resend.com is never blocked the same way.
+let resendClient = null;
+const getResendClient = () => {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+};
 
 const sendEmail = async ({ to, subject, html, text, attachments = [] }) => {
-  await transporter.sendMail({
-    from: `"ShopFlowAI" <${process.env.EMAIL_FROM || process.env.SMTP_USER || "shopflowai.dev@gmail.com"}>`,
+  const { error } = await getResendClient().emails.send({
+    from: `ShopFlowAI <${process.env.EMAIL_FROM || "onboarding@resend.dev"}>`,
     to,
     subject,
-    text,
     html,
-    attachments,
+    text,
+    // Resend accepts a Buffer directly for `content` — no base64 conversion needed.
+    attachments: attachments.map(({ filename, content }) => ({ filename, content })),
   });
+
+  if (error) {
+    throw new Error(error.message || "Failed to send email via Resend");
+  }
 };
 
 module.exports = sendEmail;
