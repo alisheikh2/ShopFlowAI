@@ -153,14 +153,16 @@ export default function AdminUsers() {
                   {user.isBanned ? 'Banned' : 'Active'}
                 </StatusBadge>
                 <p>{new Date(user.createdAt).toLocaleDateString('en-PK')}</p>
-                <button
-                  className={`icon-btn ${user.isBanned ? '' : 'danger'}`}
-                  disabled={isSelf || isBusy}
-                  title={isSelf ? 'You cannot ban your own account' : user.isBanned ? 'Unban user' : 'Ban user'}
-                  onClick={() => toggleBan(user)}
-                >
-                  {user.isBanned ? <ShieldCheck size={17} /> : <Ban size={17} />}
-                </button>
+                <div className="row-actions">
+                  <button
+                    className={`icon-btn ${user.isBanned ? '' : 'danger'}`}
+                    disabled={isSelf || isBusy}
+                    title={isSelf ? 'You cannot ban your own account' : user.isBanned ? 'Unban user' : 'Ban user'}
+                    onClick={() => toggleBan(user)}
+                  >
+                    {user.isBanned ? <ShieldCheck size={17} /> : <Ban size={17} />}
+                  </button>
+                </div>
               </div>
             )
           })}

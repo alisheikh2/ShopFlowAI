@@ -81,7 +81,9 @@ export default function AdminOrders() {
                 {allowedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
               </select>
               <StatusBadge tone={order.paymentStatus === 'paid' ? 'green' : statusTone[order.paymentStatus] || 'orange'}>{order.paymentStatus}</StatusBadge>
-              <button className="icon-btn" onClick={() => downloadInvoice(order._id, order.invoiceNumber)}><Download size={17} /></button>
+              <div className="row-actions">
+                <button className="icon-btn" onClick={() => downloadInvoice(order._id, order.invoiceNumber)} title="Download Invoice"><Download size={17} /></button>
+              </div>
             </div>
           ))}
         </div>

@@ -1138,7 +1138,7 @@
   }
 
   .admin-order-row > :nth-child(6)::before {
-    content: "Invoice";
+    content: "Actions";
   }
 
   .admin-user-row > :nth-child(2)::before {
@@ -1150,7 +1150,7 @@
   }
 
   .admin-user-row > :nth-child(5)::before {
-    content: "Access";
+    content: "Actions";
   }
 
   .product-admin-row > :nth-child(n + 2)::before,

@@ -121,6 +121,10 @@ function TopProducts({ products = [] }) {
 function CompactBreakdown({ title, data = [], labelKey = '_id', valueKey = 'totalRevenue' }) {
   const max = Math.max(...data.map((item) => item[valueKey] || 0), 1)
 
+  if (data.length === 0) {
+    return <div className="chart-empty">No data available yet</div>
+  }
+
   return (
     <div className="breakdown-card">
       <h3>{title}</h3>
@@ -131,7 +135,6 @@ function CompactBreakdown({ title, data = [], labelKey = '_id', valueKey = 'tota
           <strong>{valueKey.toLowerCase().includes('revenue') ? formatCurrency(item[valueKey]) : item[valueKey]}</strong>
         </div>
       ))}
-      {data.length === 0 && <p className="muted-small">No data available yet.</p>}
     </div>
   )
 }
