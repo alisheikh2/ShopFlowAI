@@ -183,13 +183,10 @@ Fresh databases do not need either step.
 <details>
 <summary><strong>🔥 Firebase Admin setup (click to expand)</strong></summary>
 
-The current adapter reads:
+The adapter resolves credentials in this order:
 
-```text
-server/src/config/firebase/shopflowai-firebase-adminsdk.json
-```
-
-That path is gitignored. Download the service-account file from Firebase for local development. In production, mount it from a secret store or replace the adapter with Application Default Credentials.
+1. `FIREBASE_SERVICE_ACCOUNT_JSON` env var — a stringified service-account JSON, used in production (Render/Vercel/etc. where dropping a local file isn't practical).
+2. Fallback: a local file at `server/src/config/firebase/shopflowai-firebase-adminsdk.json` — used for local development. That path is gitignored; download the service-account file from Firebase console.
 
 </details>
 
@@ -249,7 +246,7 @@ ShopFlowAI/
 - Use Node 22.12+ on all API, worker, build, and CI machines.
 - Use MongoDB Atlas or a production replica set — never deploy a standalone MongoDB (transactions require a replica set).
 - Run at least one commerce worker continuously.
-- Use a shared Redis rate-limit/cache store when scaling horizontally.
+- Redis is used for response caching only (products, categories, analytics) — rate limiting is in-memory per instance (`express-rate-limit`), so it resets per process and isn't shared across horizontally-scaled API instances yet.
 - Configure Stripe webhooks with the raw request body and HTTPS.
 - Back up and monitor the `orders`, `stripeevents`, and `outboxevents` collections.
 - Alert on failed outbox events and `refundStatus: failed`.
