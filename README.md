@@ -4,6 +4,7 @@
 
 **A full-stack, AI-assisted e-commerce platform built solo — from checkout reliability to admin operations.**
 
+[![Live](https://img.shields.io/badge/Live-shopflowai.me-07145A?logo=vercel&logoColor=white)](https://www.shopflowai.me)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![MongoDB](https://img.shields.io/badge/MongoDB-8-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com)
@@ -11,7 +12,9 @@
 [![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-[Features](#features) • [Tech Stack](#tech-stack) • [Getting Started](#getting-started) • [Architecture](#architecture-highlights) • [Testing](#testing--ci)
+**🔗 Live: [shopflowai.me](https://www.shopflowai.me)**
+
+[Features](#features) • [Tech Stack](#tech-stack) • [Getting Started](#getting-started) • [Architecture](#architecture-highlights) • [Testing](#testing--ci) • [Live Demo](#live-demo)
 
 </div>
 
@@ -22,6 +25,19 @@
 ShopFlowAI is a production-style e-commerce SaaS platform covering the full lifecycle of an online store — customer browsing and checkout, Stripe payments, and a complete admin back office — built with a deliberate focus on the problems that break real systems in production: overselling, duplicate webhook events, dead sessions, and inconsistent state after a crash mid-transaction.
 
 It was designed and built end-to-end by a single developer as a deep dive into full-stack engineering, distributed-systems thinking, and production-readiness — not just "does the feature work," but "does it hold up under failure."
+
+<a id="live-demo"></a>
+## 🌍 Live Demo
+
+**[https://www.shopflowai.me](https://www.shopflowai.me)**
+
+The app is deployed and publicly accessible — frontend on Vercel, backend API on a Node host, MongoDB on Atlas. Stripe is running in **test mode**, so you can walk through the full checkout flow without a real card:
+
+| Field | Value |
+|---|---|
+| Card number | `4242 4242 4242 4242` |
+| Expiry | Any future date |
+| CVC | Any 3 digits |
 
 <a id="features"></a>
 ## ✨ Features
@@ -63,7 +79,7 @@ It was designed and built end-to-end by a single developer as a deep dive into f
 | Auth | JWT (access + refresh), Firebase Google Sign-In |
 | Media | Cloudinary |
 | AI | Google Gemini API |
-| Email | Nodemailer |
+| Email | Resend (HTTPS API) |
 | Testing | Node.js test runner, `mongodb-memory-server`, Vitest |
 | CI/CD | GitHub Actions (lint → test → build → audit) |
 
@@ -237,12 +253,6 @@ ShopFlowAI/
 - Configure Stripe webhooks with the raw request body and HTTPS.
 - Back up and monitor the `orders`, `stripeevents`, and `outboxevents` collections.
 - Alert on failed outbox events and `refundStatus: failed`.
-
-## 🗺️ Roadmap
-
-- [ ] Production deployment (Vercel + Render/Atlas)
-- [ ] Replace placeholder catalog imagery with verified product photos
-- [ ] UI polish pass
 
 ## 👤 Author
 
