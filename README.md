@@ -49,11 +49,11 @@ The app is deployed and publicly accessible — frontend on Vercel, backend API 
 - Google Sign-In via Firebase, alongside standard email/password auth
 - Email verification, password recovery, and account-recovery flows
 - Order tracking, downloadable PDF invoices, and product reviews
-- AI-generated product descriptions (Gemini API)
 
 ### 🛠️ Admin Dashboard
 - Revenue and sales analytics
 - Product & category management, with Cloudinary image uploads
+- AI-generated product descriptions when creating/editing products (Gemini API)
 - Order management — update fulfillment status, issue refunds, export invoices
 - **User management** — search, filter, paginate; change roles; ban/unban accounts with immediate session termination
 
